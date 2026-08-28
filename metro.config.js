@@ -3,6 +3,11 @@ const { withNativeWind } = require("nativewind/metro");
 
 const config = getDefaultConfig(__dirname);
 
+// Remove problematic watcher config for EAS builds
+if (config.watchman) {
+  delete config.watchman;
+}
+
 module.exports = withNativeWind(config, {
   input: "./global.css",
   // Force write CSS to file system instead of virtual modules

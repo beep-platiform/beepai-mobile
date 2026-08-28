@@ -29,7 +29,7 @@ const schemeFromBundleId = `manus${timestamp}`;
 const env = {
   // App branding - update these values directly (do not use env vars)
   appName: "BeepAI",
-  appSlug: "beepai-mobile",
+  appSlug: "beepai-618vcq",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
   logoUrl: "/manus-storage/icon_37221e29.png",
@@ -121,6 +121,11 @@ const config: ExpoConfig = {
       },
     ],
   ],
+  extra: {
+    eas: {
+      projectId: "2805eb2e-aa6e-4428-8a2c-64af8f237bf9",
+    },
+  },
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
