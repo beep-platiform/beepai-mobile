@@ -10,3 +10,7 @@
 - [x] Add profile, privacy, offline execution, and app preference controls.
 - [x] Generate the custom BeepAI app icon and configure mobile branding.
 - [x] Validate type safety and core mobile navigation flows.
+- [ ] Create a private GitHub repository and publish the BeepAI project source.
+- [ ] Create or select a Supabase project and apply the BeepAI shared-data schema.
+- [ ] Connect the Expo app to Supabase for remote product data while preserving local-first execution data.
+- [ ] Validate the GitHub publication and Supabase-backed data flow.
