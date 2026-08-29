@@ -7,8 +7,8 @@ import { palette } from "@/components/beepai-ui";
 const tabIcons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
   index: "grid-view",
   automations: "bolt",
-  activity: "query-stats",
-  profile: "person-outline",
+  activity: "checklist",
+  profile: "settings",
 };
 
 export default function TabLayout() {
@@ -18,17 +18,17 @@ export default function TabLayout() {
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: palette.violet,
+        tabBarActiveTintColor: palette.primary,
         tabBarInactiveTintColor: "#8B90A0",
         tabBarStyle: { backgroundColor: "#FFFFFF", borderTopColor: palette.line, borderTopWidth: 1, paddingTop: 8, paddingBottom: bottomPadding, height: 59 + bottomPadding },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "700", marginTop: 3 },
         tabBarIcon: ({ color, focused }) => <MaterialIcons name={tabIcons[route.name]} size={focused ? 23 : 22} color={color} />,
       })}
     >
-      <Tabs.Screen name="index" options={{ title: "Home" }} />
+      <Tabs.Screen name="index" options={{ title: "Dashboard" }} />
       <Tabs.Screen name="automations" options={{ title: "Automations" }} />
-      <Tabs.Screen name="activity" options={{ title: "Activity" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      <Tabs.Screen name="activity" options={{ title: "Tasks" }} />
+      <Tabs.Screen name="profile" options={{ title: "Settings" }} />
     </Tabs>
   );
 }

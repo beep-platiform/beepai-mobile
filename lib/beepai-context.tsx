@@ -10,10 +10,12 @@ type BeepAIContextValue = {
   currentPlanId: string;
   runningIds: string[];
   createAutomation: (request: NewAutomation) => string;
+  addDeliveredAutomation: (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string }) => "added" | "duplicate";
   runAutomation: (id: string) => void;
   toggleAutomation: (id: string) => void;
   setPermission: (automationId: string, permissionId: string, state: PermissionState) => void;
   selectPlan: (id: string) => void;
+  resetWorkspace: () => void;
 };
 
 const BeepAIContext = createContext<BeepAIContextValue | undefined>(undefined);
@@ -80,6 +82,42 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
     return id;
   };
 
+  const addDeliveredAutomation = (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string }): "added" | "duplicate" => {
+    let outcome: "added" | "duplicate" = "added";
+    setAutomations((items) => {
+      if (items.some((item) => item.redemptionCode === pkg.redemptionCode)) {
+        outcome = "duplicate";
+        return items;
+      }
+      const automation: Automation = {
+        id: `delivered-${pkg.id}`,
+        name: pkg.name,
+        description: pkg.description || "Delivered by your BeepAI admin.",
+        category: "Reports",
+        status: "active",
+        schedule: pkg.schedule || "On demand",
+        nextRun: "Ready to run",
+        totalRuns: 0,
+        successRate: 0,
+        lastRun: "Not run yet",
+        duration: "—",
+        source: "delivered",
+        redemptionCode: pkg.redemptionCode,
+        permissions: [
+          { id: "files", name: "Files access", purpose: "Read only the files you select for this automation.", state: "needed" },
+          { id: "notifications", name: "Notifications", purpose: "Tell you when a run finishes or needs attention.", state: "allowed" },
+        ],
+        steps: [
+          { id: "delivered-trigger", label: "Package delivered", detail: "Built and signed off by your BeepAI admin", icon: "schedule", kind: "trigger" },
+          { id: "delivered-process", label: "Run your workflow", detail: "Processes your files locally on this device", icon: "calculate", kind: "process" },
+          { id: "delivered-notify", label: "Notify you", detail: "Show a local result notification", icon: "notifications", kind: "notify" },
+        ],
+      };
+      return [automation, ...items];
+    });
+    return outcome;
+  };
+
   const runAutomation = (id: string) => {
     const automation = automations.find((item) => item.id === id);
     if (!automation || runningIds.includes(id)) return;
@@ -93,14 +131,25 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleAutomation = (id: string) => {
-    setAutomations((items) => items.map((item) => item.id === id ? { ...item, status: item.status === "active" ? "paused" : "active", nextRun: item.status === "active" ? "Paused" : item.schedule === "On demand" ? "Ready to run" : "Scheduled" } : item));
+    setAutomations((items) => items.map((item) => {
+      if (item.id !== id) return item;
+      const next = item.status === "active" ? "paused" : "active";
+      return { ...item, status: next, nextRun: next === "active" ? (item.schedule === "On demand" ? "Ready to run" : "Scheduled") : "Paused" };
+    }));
   };
 
   const setPermission = (automationId: string, permissionId: string, state: PermissionState) => {
     setAutomations((items) => items.map((item) => item.id === automationId ? { ...item, permissions: item.permissions.map((permission) => permission.id === permissionId ? { ...permission, state } : permission) } : item));
   };
 
-  const value = useMemo(() => ({ automations, runs, currentPlanId, runningIds, createAutomation, runAutomation, toggleAutomation, setPermission, selectPlan: setCurrentPlanId }), [automations, runs, currentPlanId, runningIds]);
+  const resetWorkspace = () => {
+    setAutomations(defaultAutomations);
+    setRuns(defaultRuns);
+    setCurrentPlanId("personal");
+    AsyncStorage.removeItem("@beepai-workspace-v1").catch(() => undefined);
+  };
+
+  const value = useMemo(() => ({ automations, runs, currentPlanId, runningIds, createAutomation, addDeliveredAutomation, runAutomation, toggleAutomation, setPermission, selectPlan: setCurrentPlanId, resetWorkspace }), [automations, runs, currentPlanId, runningIds]);
   return <BeepAIContext.Provider value={value}>{children}</BeepAIContext.Provider>;
 }
 

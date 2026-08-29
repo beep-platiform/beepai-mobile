@@ -15,6 +15,7 @@ export default function RootLayout() {
           <Stack.Screen name="workflow/[id]" />
           <Stack.Screen name="permissions/[id]" />
           <Stack.Screen name="plans" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+          <Stack.Screen name="redeem" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
           <Stack.Screen name="run/[id]" />
         </Stack>
       </BeepAIProvider>

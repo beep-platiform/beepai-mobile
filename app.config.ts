@@ -56,7 +56,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
+      backgroundColor: "#F15B2A",
       foregroundImage: "./assets/images/android-icon-foreground.png",
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
@@ -105,9 +105,9 @@ const config: ExpoConfig = {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#FFFAF5",
         dark: {
-          backgroundColor: "#000000",
+          backgroundColor: "#142138",
         },
       },
     ],
@@ -125,6 +125,12 @@ const config: ExpoConfig = {
     eas: {
       projectId: "2805eb2e-aa6e-4428-8a2c-64af8f237bf9",
     },
+    // Same shared BeepAI Supabase project the website uses, so a request
+    // submitted here shows up in the admin control room immediately.
+    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "https://bioqlzpqxfsyrbtssglj.supabase.co",
+    supabaseAnonKey:
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpb3FsenBxeGZzeXJidHNzZ2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NzAxOTcsImV4cCI6MjEwMzQ0NjE5N30.g7iUMgzwQkmaYaPuB_Adad6RntiifG8Owysz2iZ92WM",
   },
   experiments: {
     typedRoutes: true,

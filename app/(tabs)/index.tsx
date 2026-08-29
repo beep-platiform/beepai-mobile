@@ -1,111 +1,150 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { AppScreen, BrandMark, Card, Chevron, palette, PrimaryButton, PrivacyChip, SectionTitle, StatusPill } from "@/components/beepai-ui";
+import { AppScreen, BrandMark, Card, palette, StatusPill } from "@/components/beepai-ui";
 import { useBeepAI } from "@/lib/beepai-context";
-import { type RunRecord } from "@/lib/beepai-data";
+import { type Automation } from "@/lib/beepai-data";
 
-export default function HomeScreen() {
+function formatDuration(totalMinutes: number) {
+  if (totalMinutes < 60) return `${totalMinutes}m`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
+export default function DashboardScreen() {
   const router = useRouter();
   const { automations, runs, runAutomation, runningIds } = useBeepAI();
-  const featured = automations[0];
-  const recentRuns = runs.slice(0, 3);
+
   const activeCount = automations.filter((item) => item.status === "active").length;
   const successfulRuns = runs.filter((item) => item.status === "success").length;
+  const failedRuns = runs.filter((item) => item.status === "failed").length;
+  const finishedRuns = runs.filter((item) => item.status === "success" || item.status === "failed").length;
+  const successRate = finishedRuns ? Math.round((successfulRuns / finishedRuns) * 100) : 100;
+  const tasksToday = runs.filter((item) => item.timestamp.toLowerCase().startsWith("today")).length || runs.length;
+  const timeSaved = formatDuration(successfulRuns * 12);
 
-  const renderRun = ({ item }: { item: RunRecord }) => (
-    <TouchableOpacity onPress={() => router.push(`/run/${item.id}`)} activeOpacity={0.75} style={styles.runRow}>
-      <View style={[styles.runIcon, { backgroundColor: item.status === "failed" ? "#FEECEC" : "#EAF9EE" }]}><MaterialIcons name={item.status === "failed" ? "priority-high" : "check"} color={item.status === "failed" ? palette.danger : palette.mint} size={17} /></View>
-      <View style={styles.runCopy}><Text numberOfLines={1} style={styles.runName}>{item.automationName}</Text><Text style={styles.runMeta}>{item.timestamp} · {item.duration}</Text></View>
-      <StatusPill label={item.status === "failed" ? "Needs review" : "Success"} tone={item.status === "failed" ? "red" : "green"} />
+  const renderAutomation = ({ item }: { item: Automation }) => (
+    <TouchableOpacity onPress={() => router.push(`/automation/${item.id}`)} activeOpacity={0.75} style={styles.recentRow}>
+      <View style={[styles.recentIcon, { backgroundColor: palette.primaryLight }]}>
+        <MaterialIcons name={item.category === "Messages" ? "chat" : item.category === "Files" ? "folder" : "table-chart"} size={18} color={palette.primary} />
+      </View>
+      <View style={styles.recentCopy}>
+        <Text numberOfLines={1} style={styles.recentName}>{item.name}</Text>
+        <Text numberOfLines={1} style={styles.recentMeta}>{item.schedule}</Text>
+      </View>
+      <StatusPill label={item.status === "active" ? "Active" : item.status === "paused" ? "Paused" : "Stopped"} tone={item.status === "active" ? "green" : item.status === "paused" ? "orange" : "gray"} />
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`Run ${item.name}`}
+        onPress={() => runAutomation(item.id)}
+        style={styles.recentPlay}
+      >
+        <MaterialIcons name={runningIds.includes(item.id) ? "sync" : "play-arrow"} size={17} color={palette.primary} />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
   return (
     <AppScreen>
       <FlatList
-        data={recentRuns}
+        data={automations.slice(0, 4)}
         keyExtractor={(item) => item.id}
-        renderItem={renderRun}
+        renderItem={renderAutomation}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <>
-            <View style={styles.topRow}><BrandMark /><PrivacyChip /></View>
-            <View style={styles.welcomeRow}><View><Text style={styles.kicker}>GOOD MORNING</Text><Text style={styles.greeting}>Work, simplified.</Text><Text style={styles.subheading}>Your automations stay private and run when you need them.</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>J</Text></View></View>
-            <View style={styles.metrics}>
-              <Metric icon="bolt" label="Active" value={`${activeCount}`} color={palette.violet} />
-              <Metric icon="check-circle" label="Successful" value={`${successfulRuns}`} color={palette.mint} />
-              <Metric icon="schedule" label="Scheduled" value="2" color={palette.blue} />
+            <View style={styles.topRow}>
+              <BrandMark />
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Notifications" style={styles.bellButton}>
+                <MaterialIcons name="notifications-none" size={22} color={palette.ink} />
+                {failedRuns > 0 && <View style={styles.bellDot} />}
+              </TouchableOpacity>
             </View>
-            {featured && <Card style={styles.featuredCard}>
-              <View style={styles.featuredTop}><View style={styles.featuredTitleWrap}><View style={styles.featuredIcon}><MaterialIcons name="description" size={19} color={palette.violet} /></View><View><Text style={styles.featuredLabel}>READY TO RUN</Text><Text style={styles.featuredTitle}>{featured.name}</Text></View></View><StatusPill label={featured.status === "active" ? "Active" : "Paused"} tone={featured.status === "active" ? "green" : "orange"} /></View>
-              <Text style={styles.featuredDescription}>{featured.description}</Text>
-              <View style={styles.featuredInfo}><MaterialIcons name="schedule" size={16} color={palette.muted} /><Text style={styles.featuredInfoText}>{featured.nextRun}</Text><View style={styles.dot} /><Text style={styles.featuredInfoText}>Local execution</Text></View>
-              <PrimaryButton label={runningIds.includes(featured.id) ? "Running privately" : "Run now"} icon="play-arrow" loading={runningIds.includes(featured.id)} onPress={() => runAutomation(featured.id)} style={styles.runButton} />
-              <TouchableOpacity onPress={() => router.push(`/automation/${featured.id}`)} style={styles.detailLink}><Text style={styles.detailLinkText}>View automation details</Text><MaterialIcons name="arrow-forward" size={15} color={palette.violet} /></TouchableOpacity>
-            </Card>}
-            <SectionTitle eyebrow="AUTOMATION CONTROL" title="Your workspace" action={<TouchableOpacity onPress={() => router.push("/create")}><Text style={styles.sectionAction}>Create new</Text></TouchableOpacity>} />
-            <View style={styles.quickGrid}>
-              <QuickAction icon="auto-awesome" title="Describe a task" text="Build from plain language" onPress={() => router.push("/create")} />
-              <QuickAction icon="admin-panel-settings" title="Permissions" text="Review data access" onPress={() => featured && router.push(`/permissions/${featured.id}`)} />
+
+            <Text style={styles.greeting}>Good morning! 👋</Text>
+            <Text style={styles.subheading}>Let BeepAI handle your tasks.</Text>
+
+            <View style={styles.heroCard}>
+              <View style={styles.heroTextBlock}>
+                <Text style={styles.heroLabel}>Active Automations</Text>
+                <Text style={styles.heroValue}>{activeCount}</Text>
+                <View style={styles.heroStatusRow}>
+                  <MaterialIcons name="check-circle" size={14} color="#FFFFFF" />
+                  <Text style={styles.heroStatus}>Running smoothly</Text>
+                </View>
+              </View>
+              <View style={styles.heroIconWrap}>
+                <MaterialIcons name="bolt" size={34} color="#FFFFFF" />
+              </View>
             </View>
-            <SectionTitle eyebrow="RECENT ACTIVITY" title="Runs on this device" action={<TouchableOpacity onPress={() => router.push("/(tabs)/activity")}><Text style={styles.sectionAction}>View all</Text></TouchableOpacity>} />
+
+            <View style={styles.metricsGrid}>
+              <Metric icon="check-circle-outline" label="Tasks Today" value={`${tasksToday}`} color={palette.mint} />
+              <Metric icon="schedule" label="Time Saved" value={timeSaved} color={palette.blue} />
+              <Metric icon="trending-up" label="Success Rate" value={`${successRate}%`} color={palette.primary} />
+              <Metric icon="notifications-active" label="Alerts" value={`${failedRuns}`} color={palette.amber} />
+            </View>
+
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Recent Automations</Text>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/automations")}>
+                <Text style={styles.sectionAction}>View all</Text>
+              </TouchableOpacity>
+            </View>
           </>
         }
-        ListFooterComponent={<View style={styles.footerNote}><MaterialIcons name="verified-user" size={16} color={palette.violet} /><Text style={styles.footerNoteText}>BeepAI does not keep copies of your work files.</Text></View>}
+        ListFooterComponent={
+          <TouchableOpacity onPress={() => router.push("/redeem" as never)} style={styles.redeemNote}>
+            <MaterialIcons name="qr-code-2" size={16} color={palette.primary} />
+            <Text style={styles.redeemNoteText}>Have a package code from BeepAI? Redeem it</Text>
+            <MaterialIcons name="arrow-forward" size={15} color={palette.primary} />
+          </TouchableOpacity>
+        }
       />
     </AppScreen>
   );
 }
 
 function Metric({ icon, label, value, color }: { icon: keyof typeof MaterialIcons.glyphMap; label: string; value: string; color: string }) {
-  return <View style={styles.metric}><View style={[styles.metricIcon, { backgroundColor: `${color}14` }]}><MaterialIcons name={icon} size={17} color={color} /></View><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
-}
-
-function QuickAction({ icon, title, text, onPress }: { icon: keyof typeof MaterialIcons.glyphMap; title: string; text: string; onPress: () => void }) {
-  return <TouchableOpacity activeOpacity={0.76} onPress={onPress} style={styles.quickAction}><View style={styles.quickIcon}><MaterialIcons name={icon} color={palette.violet} size={20} /></View><View style={styles.quickCopy}><Text style={styles.quickTitle}>{title}</Text><Text style={styles.quickText}>{text}</Text></View><Chevron /></TouchableOpacity>;
+  return (
+    <Card style={styles.metricCard}>
+      <View style={[styles.metricIcon, { backgroundColor: `${color}17` }]}><MaterialIcons name={icon} size={17} color={color} /></View>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+    </Card>
+  );
 }
 
 const styles = StyleSheet.create({
   listContent: { padding: 20, paddingTop: 12, paddingBottom: 28 },
-  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 25 },
-  welcomeRow: { flexDirection: "row", justifyContent: "space-between", gap: 16, marginBottom: 22 },
-  kicker: { color: palette.violet, fontSize: 11, fontWeight: "900", letterSpacing: 1.2, marginBottom: 5 },
-  greeting: { color: palette.ink, fontSize: 31, lineHeight: 37, fontWeight: "900", letterSpacing: -1.1 },
-  subheading: { color: palette.muted, fontSize: 14, lineHeight: 20, maxWidth: 285, marginTop: 7 },
-  avatar: { width: 42, height: 42, borderRadius: 15, backgroundColor: "#EDE9FE", alignItems: "center", justifyContent: "center", marginTop: 4 },
-  avatarText: { color: palette.violet, fontSize: 16, fontWeight: "900" },
-  metrics: { flexDirection: "row", gap: 10, marginBottom: 24 },
-  metric: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 17, padding: 12, borderWidth: 1, borderColor: palette.line },
-  metricIcon: { width: 29, height: 29, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 9 },
-  metricValue: { fontSize: 21, color: palette.ink, fontWeight: "900", letterSpacing: -0.5 },
-  metricLabel: { fontSize: 11, color: palette.muted, marginTop: 1, fontWeight: "700" },
-  featuredCard: { padding: 17, marginBottom: 27, backgroundColor: "#FFFFFF" },
-  featuredTop: { flexDirection: "row", justifyContent: "space-between", gap: 10, alignItems: "flex-start" },
-  featuredTitleWrap: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
-  featuredIcon: { height: 37, width: 37, borderRadius: 12, justifyContent: "center", alignItems: "center", backgroundColor: palette.violetLight },
-  featuredLabel: { color: palette.violet, fontSize: 10, fontWeight: "900", letterSpacing: 0.7, marginBottom: 2 },
-  featuredTitle: { color: palette.ink, fontSize: 16, fontWeight: "900", letterSpacing: -0.3 },
-  featuredDescription: { color: palette.muted, fontSize: 13, lineHeight: 18, marginTop: 14 },
-  featuredInfo: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12, marginBottom: 15 },
-  featuredInfoText: { color: palette.muted, fontSize: 12, fontWeight: "600" },
-  dot: { height: 3, width: 3, borderRadius: 2, backgroundColor: "#BFC5D2", marginHorizontal: 1 },
-  runButton: { borderRadius: 14, minHeight: 48 },
-  detailLink: { alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 5, paddingTop: 12, paddingBottom: 2 },
-  detailLinkText: { color: palette.violet, fontSize: 13, fontWeight: "800" },
-  sectionAction: { color: palette.violet, fontSize: 13, fontWeight: "800", padding: 4 },
-  quickGrid: { gap: 10, marginBottom: 27 },
-  quickAction: { backgroundColor: "#FFFFFF", borderRadius: 17, padding: 13, borderWidth: 1, borderColor: palette.line, flexDirection: "row", alignItems: "center" },
-  quickIcon: { backgroundColor: palette.violetLight, height: 38, width: 38, borderRadius: 12, justifyContent: "center", alignItems: "center", marginRight: 10 },
-  quickCopy: { flex: 1 },
-  quickTitle: { color: palette.ink, fontSize: 14, fontWeight: "800" },
-  quickText: { color: palette.muted, fontSize: 11, marginTop: 2 },
-  runRow: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: palette.line, borderRadius: 16, padding: 12, marginBottom: 9, flexDirection: "row", alignItems: "center" },
-  runIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center", marginRight: 10 },
-  runCopy: { flex: 1, paddingRight: 8 },
-  runName: { color: palette.ink, fontSize: 13, fontWeight: "800" },
-  runMeta: { color: palette.muted, fontSize: 11, marginTop: 3 },
-  footerNote: { flexDirection: "row", gap: 8, alignItems: "center", marginTop: 17, paddingVertical: 8, justifyContent: "center" },
-  footerNoteText: { color: palette.muted, fontSize: 11, fontWeight: "600" },
+  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
+  bellButton: { width: 40, height: 40, borderRadius: 13, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: palette.line, alignItems: "center", justifyContent: "center" },
+  bellDot: { position: "absolute", top: 8, right: 9, width: 8, height: 8, borderRadius: 4, backgroundColor: palette.danger, borderWidth: 1.5, borderColor: "#FFFFFF" },
+  greeting: { color: palette.ink, fontSize: 26, lineHeight: 32, fontWeight: "900", letterSpacing: -0.8 },
+  subheading: { color: palette.muted, fontSize: 14, lineHeight: 20, marginTop: 4, marginBottom: 20 },
+  heroCard: { backgroundColor: palette.primary, borderRadius: 22, padding: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
+  heroTextBlock: { flex: 1 },
+  heroLabel: { color: "#FFE9DD", fontSize: 13, fontWeight: "800", marginBottom: 6 },
+  heroValue: { color: "#FFFFFF", fontSize: 40, fontWeight: "900", letterSpacing: -1.2, lineHeight: 44 },
+  heroStatusRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
+  heroStatus: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  heroIconWrap: { width: 56, height: 56, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  metricsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 },
+  metricCard: { width: "47.5%", padding: 13 },
+  metricIcon: { width: 30, height: 30, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  metricValue: { fontSize: 20, color: palette.ink, fontWeight: "900", letterSpacing: -0.4 },
+  metricLabel: { fontSize: 11, color: palette.muted, marginTop: 2, fontWeight: "700" },
+  sectionHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: "900", color: palette.ink, letterSpacing: -0.3 },
+  sectionAction: { color: palette.primary, fontSize: 13, fontWeight: "800" },
+  recentRow: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: palette.line, borderRadius: 16, padding: 12, marginBottom: 9, flexDirection: "row", alignItems: "center", gap: 9 },
+  recentIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  recentCopy: { flex: 1 },
+  recentName: { color: palette.ink, fontSize: 13, fontWeight: "800" },
+  recentMeta: { color: palette.muted, fontSize: 11, marginTop: 2 },
+  recentPlay: { width: 30, height: 30, borderRadius: 10, backgroundColor: palette.primaryLight, alignItems: "center", justifyContent: "center" },
+  redeemNote: { flexDirection: "row", gap: 7, alignItems: "center", marginTop: 8, paddingVertical: 12, justifyContent: "center", backgroundColor: palette.primaryLight, borderRadius: 14 },
+  redeemNoteText: { color: palette.primary, fontSize: 12, fontWeight: "800" },
 });

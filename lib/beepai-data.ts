@@ -1,6 +1,6 @@
-export type AutomationStatus = "active" | "paused";
+export type AutomationStatus = "active" | "paused" | "stopped";
 export type PermissionState = "allowed" | "needed" | "notRequired";
-export type RunStatus = "success" | "failed" | "running";
+export type RunStatus = "success" | "failed" | "running" | "pending" | "scheduled";
 
 export type PermissionItem = {
   id: string;
@@ -31,6 +31,8 @@ export type Automation = {
   duration: string;
   permissions: PermissionItem[];
   steps: WorkflowStep[];
+  source?: "local" | "delivered";
+  redemptionCode?: string;
 };
 
 export type RunRecord = {
@@ -182,6 +184,26 @@ export const defaultAutomations: Automation[] = [
       { id: "move", label: "Sort into folders", detail: "Move files into selected local folders", icon: "folder", kind: "output" },
     ],
   },
+  {
+    id: "invoice-reminder",
+    name: "Invoice Reminder",
+    description: "Send a polite reminder message for overdue invoices.",
+    category: "Messages",
+    status: "stopped",
+    schedule: "Weekly · Friday",
+    nextRun: "Stopped",
+    totalRuns: 6,
+    successRate: 100,
+    lastRun: "Jul 18, 09:00",
+    duration: "8 sec",
+    permissions: [
+      { id: "whatsapp", name: "WhatsApp Business", purpose: "Send a message only through an approved official integration.", state: "notRequired" },
+    ],
+    steps: [
+      { id: "reminder-check", label: "Check overdue invoices", detail: "Weekly on Fridays", icon: "schedule", kind: "trigger" },
+      { id: "reminder-message", label: "Build reminder message", detail: "Populate the approved template variables", icon: "chat", kind: "process" },
+    ],
+  },
 ];
 
 export const defaultRuns: RunRecord[] = [
@@ -189,4 +211,7 @@ export const defaultRuns: RunRecord[] = [
   { id: "run-2", automationId: "invoice-processor", automationName: "Invoice Processor", status: "success", timestamp: "Yesterday, 16:42", duration: "48 sec", summary: "Extracted 12 invoices and saved a local reconciliation sheet." },
   { id: "run-3", automationId: "whatsapp-reminder", automationName: "WhatsApp Daily Reminder", status: "failed", timestamp: "Aug 20, 09:00", duration: "10 sec", summary: "Waiting for permission to use the approved messaging channel." },
   { id: "run-4", automationId: "file-organizer", automationName: "File Organizer", status: "success", timestamp: "Aug 26, 11:15", duration: "16 sec", summary: "Renamed and sorted six reports into local folders." },
+  { id: "run-5", automationId: "monthly-report", automationName: "Send Email Report", status: "running", timestamp: "Today, 08:00", duration: "—", summary: "Preparing the monthly performance report email draft." },
+  { id: "run-6", automationId: "whatsapp-reminder", automationName: "Social Media Post", status: "pending", timestamp: "Today, 10:00", duration: "—", summary: "Waiting for the scheduled time to prepare the post." },
+  { id: "run-7", automationId: "file-organizer", automationName: "Website Check", status: "scheduled", timestamp: "Today, 12:00", duration: "—", summary: "Scheduled to check the monitored website for changes." },
 ];

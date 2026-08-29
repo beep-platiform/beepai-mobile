@@ -4,24 +4,127 @@ import { useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AppScreen, BrandMark, Card, palette, StatusPill } from "@/components/beepai-ui";
 import { useBeepAI } from "@/lib/beepai-context";
-import type { RunRecord } from "@/lib/beepai-data";
+import type { RunRecord, RunStatus } from "@/lib/beepai-data";
 
-export default function ActivityScreen() {
+type TaskFilter = "all" | "today" | "upcoming" | "done";
+
+const STATUS_META: Record<RunStatus, { label: string; tone: "green" | "blue" | "orange" | "violet" | "red"; icon: keyof typeof MaterialIcons.glyphMap }> = {
+  success: { label: "Done", tone: "green", icon: "check-circle" },
+  running: { label: "In Progress", tone: "blue", icon: "schedule" },
+  pending: { label: "Pending", tone: "orange", icon: "schedule" },
+  scheduled: { label: "Scheduled", tone: "violet", icon: "event" },
+  failed: { label: "Needs review", tone: "red", icon: "error-outline" },
+};
+
+export default function TasksScreen() {
   const router = useRouter();
   const { runs } = useBeepAI();
-  const [filter, setFilter] = useState<"all" | "success" | "failed">("all");
-  const filteredRuns = useMemo(() => filter === "all" ? runs : runs.filter((item) => item.status === filter), [runs, filter]);
-  return <AppScreen><FlatList data={filteredRuns} keyExtractor={(item) => item.id} renderItem={({ item }) => <RunRow item={item} onPress={() => router.push({ pathname: "/run/[id]", params: { id: item.id } })} />} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} ListHeaderComponent={<>
-    <View style={styles.topRow}><BrandMark /><View style={styles.localChip}><MaterialIcons name="lock" size={14} color={palette.mint} /><Text style={styles.localText}>Local history</Text></View></View>
-    <Text style={styles.title}>Activity</Text><Text style={styles.subtitle}>A private record of every automation run.</Text>
-    <Card style={styles.summary}><View style={styles.summaryIcon}><MaterialIcons name="auto-graph" size={20} color={palette.violet} /></View><View style={styles.summaryText}><Text style={styles.summaryTitle}>This month</Text><Text style={styles.summaryDetail}>{runs.filter((item) => item.status === "success").length} completed runs · {runs.filter((item) => item.status === "failed").length} needs attention</Text></View></Card>
-    <View style={styles.filters}><ActivityFilter label="All runs" active={filter === "all"} onPress={() => setFilter("all")} /><ActivityFilter label="Success" active={filter === "success"} onPress={() => setFilter("success")} /><ActivityFilter label="Needs review" active={filter === "failed"} onPress={() => setFilter("failed")} /></View>
-    <Text style={styles.listTitle}>{filter === "all" ? "All activity" : filter === "success" ? "Successful runs" : "Runs needing review"}</Text>
-  </>} ListEmptyComponent={<Card style={styles.empty}><MaterialIcons name="history" size={26} color={palette.violet} /><Text style={styles.emptyText}>There are no runs in this view yet.</Text></Card>} /></AppScreen>;
+  const [filter, setFilter] = useState<TaskFilter>("all");
+
+  const filteredRuns = useMemo(() => {
+    switch (filter) {
+      case "today":
+        return runs.filter((item) => item.timestamp.toLowerCase().startsWith("today"));
+      case "upcoming":
+        return runs.filter((item) => item.status === "pending" || item.status === "scheduled");
+      case "done":
+        return runs.filter((item) => item.status === "success");
+      default:
+        return runs;
+    }
+  }, [runs, filter]);
+
+  return (
+    <AppScreen>
+      <FlatList
+        data={filteredRuns}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <TaskRow item={item} onPress={() => router.push(`/run/${item.id}`)} />}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            <View style={styles.topRow}>
+              <BrandMark />
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Filter tasks" style={styles.filterButton}>
+                <MaterialIcons name="tune" size={19} color={palette.ink} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.title}>Tasks</Text>
+            <View style={styles.filters}>
+              <TaskFilterChip label="All" active={filter === "all"} onPress={() => setFilter("all")} />
+              <TaskFilterChip label="Today" active={filter === "today"} onPress={() => setFilter("today")} />
+              <TaskFilterChip label="Upcoming" active={filter === "upcoming"} onPress={() => setFilter("upcoming")} />
+              <TaskFilterChip label="Done" active={filter === "done"} onPress={() => setFilter("done")} />
+            </View>
+          </>
+        }
+        ListEmptyComponent={
+          <Card style={styles.empty}>
+            <MaterialIcons name="event-available" size={26} color={palette.primary} />
+            <Text style={styles.emptyText}>No tasks in this view yet.</Text>
+          </Card>
+        }
+        ListFooterComponent={<View style={{ height: 76 }} />}
+      />
+      <TouchableOpacity onPress={() => router.push("/create" as never)} style={styles.newTaskButton} activeOpacity={0.9}>
+        <MaterialIcons name="add" size={19} color="#FFFFFF" />
+        <Text style={styles.newTaskText}>New Task</Text>
+      </TouchableOpacity>
+    </AppScreen>
+  );
 }
 
-function ActivityFilter({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) { return <TouchableOpacity onPress={onPress} style={[styles.filter, active && styles.filterActive]}><Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text></TouchableOpacity>; }
-function RunRow({ item, onPress }: { item: RunRecord; onPress: () => void }) { const failed = item.status === "failed"; return <TouchableOpacity onPress={onPress} activeOpacity={0.76}><Card style={styles.row}><View style={[styles.rowIcon, { backgroundColor: failed ? "#FEECEC" : "#EAF9EE" }]}><MaterialIcons name={failed ? "error-outline" : "check"} color={failed ? palette.danger : palette.mint} size={19} /></View><View style={styles.rowCopy}><View style={styles.rowTitleLine}><Text numberOfLines={1} style={styles.rowTitle}>{item.automationName}</Text><StatusPill label={failed ? "Review" : "Success"} tone={failed ? "red" : "green"} /></View><Text numberOfLines={1} style={styles.rowDetail}>{item.summary}</Text><View style={styles.rowMeta}><Text>{item.timestamp}</Text><View style={styles.dot} /><Text>{item.duration}</Text></View></View><MaterialIcons name="chevron-right" color="#98A2B3" size={21} /></Card></TouchableOpacity>; }
+function TaskFilterChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={[styles.filterChip, active && styles.filterChipActive]}>
+      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function TaskRow({ item, onPress }: { item: RunRecord; onPress: () => void }) {
+  const meta = STATUS_META[item.status];
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.76}>
+      <Card style={styles.row}>
+        <View style={[styles.rowIcon, { backgroundColor: iconBackground(meta.tone) }]}>
+          <MaterialIcons name={meta.icon} color={iconColor(meta.tone)} size={19} />
+        </View>
+        <View style={styles.rowCopy}>
+          <Text numberOfLines={1} style={styles.rowTitle}>{item.automationName}</Text>
+          <Text numberOfLines={1} style={styles.rowMeta}>{item.timestamp}</Text>
+        </View>
+        <StatusPill label={meta.label} tone={meta.tone} />
+      </Card>
+    </TouchableOpacity>
+  );
+}
+
+function iconBackground(tone: "green" | "blue" | "orange" | "violet" | "red") {
+  return { green: "#EAF9EE", blue: "#EAF1FF", orange: "#FFF4E6", violet: palette.primaryLight, red: "#FEECEC" }[tone];
+}
+function iconColor(tone: "green" | "blue" | "orange" | "violet" | "red") {
+  return { green: palette.mint, blue: palette.blue, orange: palette.amber, violet: palette.primary, red: palette.danger }[tone];
+}
+
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingTop: 12, paddingBottom: 28 }, topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 23 }, localChip: { backgroundColor: "#FFFFFF", paddingHorizontal: 10, paddingVertical: 7, borderRadius: 99, borderColor: "#DFF2E3", borderWidth: 1, flexDirection: "row", alignItems: "center", gap: 5 }, localText: { fontSize: 11, fontWeight: "800", color: "#27733A" }, title: { color: palette.ink, fontSize: 30, lineHeight: 37, fontWeight: "900", letterSpacing: -1 }, subtitle: { color: palette.muted, fontSize: 14, marginTop: 5, marginBottom: 17 }, summary: { padding: 14, flexDirection: "row", alignItems: "center", gap: 11, marginBottom: 17 }, summaryIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: palette.violetLight, justifyContent: "center", alignItems: "center" }, summaryText: { flex: 1 }, summaryTitle: { color: palette.ink, fontSize: 14, fontWeight: "900" }, summaryDetail: { color: palette.muted, fontSize: 12, marginTop: 3 }, filters: { flexDirection: "row", gap: 7, marginBottom: 20, flexWrap: "wrap" }, filter: { height: 33, paddingHorizontal: 11, justifyContent: "center", borderRadius: 11, borderWidth: 1, borderColor: palette.line, backgroundColor: "#FFFFFF" }, filterActive: { backgroundColor: palette.violet, borderColor: palette.violet }, filterText: { color: palette.muted, fontWeight: "800", fontSize: 11 }, filterTextActive: { color: "#FFFFFF" }, listTitle: { color: palette.ink, fontSize: 18, fontWeight: "900", marginBottom: 10 }, row: { padding: 12, marginBottom: 9, flexDirection: "row", alignItems: "center", gap: 10 }, rowIcon: { width: 37, height: 37, borderRadius: 12, justifyContent: "center", alignItems: "center" }, rowCopy: { flex: 1 }, rowTitleLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 7 }, rowTitle: { color: palette.ink, fontSize: 13, fontWeight: "900", flex: 1 }, rowDetail: { color: palette.muted, fontSize: 11, marginTop: 4 }, rowMeta: { flexDirection: "row", alignItems: "center", gap: 6, color: palette.muted, marginTop: 6 }, dot: { height: 3, width: 3, borderRadius: 2, backgroundColor: "#BFC5D2" }, empty: { padding: 22, gap: 9, alignItems: "center" }, emptyText: { color: palette.muted, fontSize: 13 },
+  content: { padding: 20, paddingTop: 12, paddingBottom: 28 },
+  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
+  filterButton: { width: 39, height: 39, borderRadius: 13, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: palette.line, alignItems: "center", justifyContent: "center" },
+  title: { color: palette.ink, fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -1, marginBottom: 16 },
+  filters: { flexDirection: "row", gap: 8, marginBottom: 20 },
+  filterChip: { height: 34, paddingHorizontal: 14, justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: palette.line, backgroundColor: "#FFFFFF" },
+  filterChipActive: { backgroundColor: palette.primary, borderColor: palette.primary },
+  filterChipText: { color: palette.muted, fontWeight: "800", fontSize: 12 },
+  filterChipTextActive: { color: "#FFFFFF" },
+  row: { padding: 13, marginBottom: 10, flexDirection: "row", alignItems: "center", gap: 11 },
+  rowIcon: { width: 38, height: 38, borderRadius: 13, justifyContent: "center", alignItems: "center" },
+  rowCopy: { flex: 1 },
+  rowTitle: { color: palette.ink, fontSize: 14, fontWeight: "900" },
+  rowMeta: { color: palette.muted, fontSize: 11, marginTop: 3 },
+  empty: { padding: 22, gap: 9, alignItems: "center" },
+  emptyText: { color: palette.muted, fontSize: 13 },
+  newTaskButton: { position: "absolute", left: 20, right: 20, bottom: 18, height: 52, borderRadius: 16, backgroundColor: palette.primary, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, shadowColor: palette.primary, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
+  newTaskText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
 });
