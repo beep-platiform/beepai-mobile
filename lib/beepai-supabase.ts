@@ -17,33 +17,35 @@ export type AutomationRequestInput = {
   contactEmail?: string;
 };
 
-export type SubmitResult = { ok: true; id: string } | { ok: false; error: string };
+export type SubmitResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Sends a plain-language automation request straight into the same
  * beepai_automation_requests table the website's admin control room reads.
  * No account is required: the requester is identified by contact info only.
+ *
+ * Note: this deliberately does NOT chain .select() after .insert(). The
+ * anon role only has INSERT privilege on this table (not SELECT), by design,
+ * so requesters can't browse other people's requests. Asking PostgREST to
+ * return the inserted row would fail the whole write with a permission
+ * error, even though the insert itself is allowed.
  */
 export async function submitAutomationRequest(input: AutomationRequestInput): Promise<SubmitResult> {
   if (!supabase) return { ok: false, error: "BeepAI cloud is not configured on this build." };
   if (!input.contactPhone && !input.contactEmail) {
     return { ok: false, error: "Add a phone number or email so BeepAI can reach you." };
   }
-  const { data, error } = await supabase
-    .from("beepai_automation_requests")
-    .insert({
-      description: input.description,
-      involved_tools: input.involvedTools,
-      frequency: input.frequency,
-      contact_name: input.contactName,
-      contact_phone: input.contactPhone ?? null,
-      contact_email: input.contactEmail ?? null,
-      status: "submitted",
-    })
-    .select("id")
-    .single();
+  const { error } = await supabase.from("beepai_automation_requests").insert({
+    description: input.description,
+    involved_tools: input.involvedTools,
+    frequency: input.frequency,
+    contact_name: input.contactName,
+    contact_phone: input.contactPhone ?? null,
+    contact_email: input.contactEmail ?? null,
+    status: "submitted",
+  });
   if (error) return { ok: false, error: error.message };
-  return { ok: true, id: data.id as string };
+  return { ok: true };
 }
 
 export type DeliveredPackage = {
