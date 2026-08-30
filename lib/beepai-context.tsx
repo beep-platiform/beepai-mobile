@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Automation, defaultAutomations, defaultRuns, plans, type PermissionState, type RunRecord } from "@/lib/beepai-data";
+import { Automation, type PermissionState, plans, type RunRecord } from "@/lib/beepai-data";
 
 type NewAutomation = { description: string; tools: string[]; frequency: string };
 
@@ -21,8 +21,8 @@ type BeepAIContextValue = {
 const BeepAIContext = createContext<BeepAIContextValue | undefined>(undefined);
 
 export function BeepAIProvider({ children }: { children: ReactNode }) {
-  const [automations, setAutomations] = useState(defaultAutomations);
-  const [runs, setRuns] = useState(defaultRuns);
+  const [automations, setAutomations] = useState<Automation[]>([]);
+  const [runs, setRuns] = useState<RunRecord[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState("personal");
   const [runningIds, setRunningIds] = useState<string[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -143,8 +143,8 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
   };
 
   const resetWorkspace = () => {
-    setAutomations(defaultAutomations);
-    setRuns(defaultRuns);
+    setAutomations([]);
+    setRuns([]);
     setCurrentPlanId("personal");
     AsyncStorage.removeItem("@beepai-workspace-v1").catch(() => undefined);
   };

@@ -1,15 +1,17 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { AppScreen, Card, PageHeader, palette, PrimaryButton } from "@/components/beepai-ui";
 import { useBeepAI } from "@/lib/beepai-context";
 import { redeemPackage } from "@/lib/beepai-supabase";
+import { clearPendingRequest } from "@/lib/use-pending-package";
 
 export default function RedeemScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ code?: string }>();
   const { addDeliveredAutomation } = useBeepAI();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(params.code ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +32,7 @@ export default function RedeemScreen() {
       schedule: pkg.schedule,
       redemptionCode: pkg.redemption_code,
     });
+    await clearPendingRequest();
     router.replace(`/automation/delivered-${pkg.id}`);
     if (outcome === "duplicate") {
       // Already in the workspace — navigation above still takes the user to it.

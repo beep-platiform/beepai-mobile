@@ -112,6 +112,13 @@ const config: ExpoConfig = {
       },
     ],
     [
+      "expo-notifications",
+      {
+        icon: "./assets/images/android-icon-foreground.png",
+        color: "#F15B2A",
+      },
+    ],
+    [
       "expo-build-properties",
       {
         android: {

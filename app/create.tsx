@@ -5,6 +5,7 @@ import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, Text
 import { AppScreen, Card, PageHeader, palette, PrimaryButton } from "@/components/beepai-ui";
 import { useBeepAI } from "@/lib/beepai-context";
 import { submitAutomationRequest } from "@/lib/beepai-supabase";
+import { rememberPendingRequest } from "@/lib/use-pending-package";
 
 type ToolOption = { name: string; icon: keyof typeof MaterialIcons.glyphMap; color: string };
 const tools: ToolOption[] = [
@@ -47,6 +48,9 @@ export default function CreateAutomationScreen() {
       contactPhone: contactPhone.trim(),
     });
     setSubmitting(false);
+    if (result.ok) {
+      await rememberPendingRequest(contactPhone.trim());
+    }
     if (!result.ok) {
       Alert.alert(
         "Saved on this device only",

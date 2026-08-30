@@ -16,6 +16,13 @@ export default function RootLayout() {
           <Stack.Screen name="permissions/[id]" />
           <Stack.Screen name="plans" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
           <Stack.Screen name="redeem" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+          <Stack.Screen name="settings/account" />
+          <Stack.Screen name="settings/integrations" />
+          <Stack.Screen name="settings/notifications" />
+          <Stack.Screen name="settings/billing" />
+          <Stack.Screen name="settings/security" />
+          <Stack.Screen name="settings/help" />
+          <Stack.Screen name="settings/about" />
           <Stack.Screen name="run/[id]" />
         </Stack>
       </BeepAIProvider>

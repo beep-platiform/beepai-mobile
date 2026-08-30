@@ -48,6 +48,21 @@ export async function submitAutomationRequest(input: AutomationRequestInput): Pr
   return { ok: true };
 }
 
+export type PendingPackage = { name: string; description: string; schedule: string; redemptionCode: string };
+
+/**
+ * Asks "has a package been delivered for this phone number yet?" without
+ * needing the code itself. Used to power a local notification the moment a
+ * package becomes available, without any account or push token.
+ */
+export async function checkPendingDelivery(phone: string): Promise<PendingPackage | null> {
+  if (!supabase || !phone.trim()) return null;
+  const { data, error } = await supabase.rpc("check_pending_delivery", { p_phone: phone.trim() });
+  if (error) return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  return { name: row.name, description: row.description, schedule: row.schedule, redemptionCode: row.redemption_code };
+}
 export type DeliveredPackage = {
   id: string;
   name: string;

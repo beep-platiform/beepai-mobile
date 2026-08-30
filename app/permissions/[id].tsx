@@ -1,15 +1,121 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams } from "expo-router";
-import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import { AppScreen, Card, PageHeader, palette, StatusPill } from "@/components/beepai-ui";
 import { useBeepAI } from "@/lib/beepai-context";
 import type { PermissionItem } from "@/lib/beepai-data";
+import { requestNotificationPermission } from "@/lib/use-pending-package";
 
 export default function PermissionsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>(); const { automations, setPermission } = useBeepAI(); const automation = automations.find((item) => item.id === id);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { automations, setPermission } = useBeepAI();
+  const automation = automations.find((item) => item.id === id);
   if (!automation) return <AppScreen><PageHeader title="Permissions" back /></AppScreen>;
-  return <AppScreen><FlatList data={automation.permissions} keyExtractor={(item) => item.id} renderItem={({ item }) => <PermissionRow item={item} onChange={(allowed) => setPermission(automation.id, item.id, allowed ? "allowed" : "needed")} />} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} ListHeaderComponent={<><PageHeader title="Permissions" subtitle="You are always in control" back /><Card style={styles.notice}><View style={styles.noticeGlyph}><MaterialIcons name="shield" size={20} color={palette.mint} /></View><View style={styles.noticeCopy}><Text style={styles.noticeTitle}>Permission requests are specific</Text><Text style={styles.noticeText}>{automation.name} can use only the capabilities listed below.</Text></View></Card><Text style={styles.heading}>For {automation.name}</Text></>} ListFooterComponent={<Card style={styles.footer}><MaterialIcons name="lock-outline" color={palette.primary} size={20} /><View style={styles.footerCopy}><Text style={styles.footerTitle}>Local data stays local</Text><Text style={styles.footerText}>Changing a permission does not upload your files. It only controls what this automation can do on your device.</Text></View></Card>} /></AppScreen>;
+
+  const handleChange = async (permission: PermissionItem, allowed: boolean) => {
+    if (!allowed) {
+      setPermission(automation.id, permission.id, "needed");
+      return;
+    }
+    // Files and notifications map to a real OS-level permission or system
+    // picker. Everything else (Excel processing, WhatsApp, email) is a
+    // product-level capability with no separate OS permission to request.
+    if (permission.id === "files") {
+      try {
+        const result = await DocumentPicker.getDocumentAsync({ multiple: false });
+        if (result.canceled) return; // don't mark "allowed" unless access was actually granted
+        setPermission(automation.id, permission.id, "allowed");
+      } catch {
+        Alert.alert("Couldn't access files", "Something went wrong opening the file picker. Try again.");
+      }
+      return;
+    }
+    if (permission.id === "notifications") {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        setPermission(automation.id, permission.id, "allowed");
+      } else {
+        Alert.alert("Notifications are off", "Enable notifications for BeepAI in your device settings to allow this.");
+      }
+      return;
+    }
+    setPermission(automation.id, permission.id, "allowed");
+  };
+
+  return (
+    <AppScreen>
+      <FlatList
+        data={automation.permissions}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <PermissionRow item={item} onChange={(allowed) => handleChange(item, allowed)} />}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            <PageHeader title="Permissions" subtitle="You are always in control" back />
+            <Card style={styles.notice}>
+              <View style={styles.noticeGlyph}><MaterialIcons name="shield" size={20} color={palette.mint} /></View>
+              <View style={styles.noticeCopy}>
+                <Text style={styles.noticeTitle}>Permission requests are specific</Text>
+                <Text style={styles.noticeText}>{automation.name} can use only the capabilities listed below.</Text>
+              </View>
+            </Card>
+            <Text style={styles.heading}>For {automation.name}</Text>
+          </>
+        }
+        ListFooterComponent={
+          <Card style={styles.footer}>
+            <MaterialIcons name="lock-outline" color={palette.primary} size={20} />
+            <View style={styles.footerCopy}>
+              <Text style={styles.footerTitle}>Local data stays local</Text>
+              <Text style={styles.footerText}>Changing a permission does not upload your files. It only controls what this automation can do on your device.</Text>
+            </View>
+          </Card>
+        }
+      />
+    </AppScreen>
+  );
 }
-function PermissionRow({ item, onChange }: { item: PermissionItem; onChange: (allowed: boolean) => void }) { const allowed = item.state === "allowed"; const unavailable = item.state === "notRequired"; return <Card style={[styles.row, unavailable && styles.rowMuted]}><View style={[styles.rowGlyph, { backgroundColor: allowed ? "#EAF9EE" : "#FFF4E6" }]}><MaterialIcons name={allowed ? "check" : "lock-outline"} color={allowed ? palette.mint : palette.amber} size={20} /></View><View style={styles.rowCopy}><View style={styles.rowTitleLine}><Text style={styles.rowTitle}>{item.name}</Text><StatusPill label={unavailable ? "Not needed" : allowed ? "Allowed" : "Needs review"} tone={unavailable ? "gray" : allowed ? "green" : "orange"} /></View><Text style={styles.rowText}>{item.purpose}</Text></View>{!unavailable && <Switch value={allowed} onValueChange={onChange} trackColor={{ false: "#D0D5DD", true: "#BDECC9" }} thumbColor={allowed ? palette.mint : "#FFFFFF"} style={styles.switch} />}</Card>; }
-const styles = StyleSheet.create({ content: { padding: 20, paddingTop: 9, paddingBottom: 27 }, notice: { padding: 13, marginTop: 5, marginBottom: 25, flexDirection: "row", gap: 10, borderColor: "#DFF2E3", backgroundColor: "#FAFFFB" }, noticeGlyph: { height: 38, width: 38, borderRadius: 12, backgroundColor: "#EAF9EE", alignItems: "center", justifyContent: "center" }, noticeCopy: { flex: 1 }, noticeTitle: { color: palette.ink, fontSize: 14, fontWeight: "900" }, noticeText: { color: palette.muted, fontSize: 11, lineHeight: 16, marginTop: 3 }, heading: { color: palette.ink, fontSize: 18, fontWeight: "900", marginBottom: 10 }, row: { padding: 12, flexDirection: "row", gap: 10, marginBottom: 9, alignItems: "center" }, rowMuted: { opacity: 0.7 }, rowGlyph: { height: 39, width: 39, borderRadius: 13, alignItems: "center", justifyContent: "center" }, rowCopy: { flex: 1 }, rowTitleLine: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }, rowTitle: { color: palette.ink, fontSize: 13, fontWeight: "900" }, rowText: { color: palette.muted, fontSize: 11, lineHeight: 16, marginTop: 4 }, switch: { marginLeft: -3 }, footer: { marginTop: 16, padding: 13, backgroundColor: palette.primaryLight, borderColor: "#DED2FC", flexDirection: "row", gap: 10 }, footerCopy: { flex: 1 }, footerTitle: { color: palette.ink, fontSize: 13, fontWeight: "900" }, footerText: { color: palette.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
+
+function PermissionRow({ item, onChange }: { item: PermissionItem; onChange: (allowed: boolean) => void }) {
+  const allowed = item.state === "allowed";
+  const unavailable = item.state === "notRequired";
+  return (
+    <Card style={[styles.row, unavailable && styles.rowMuted]}>
+      <View style={[styles.rowGlyph, { backgroundColor: allowed ? "#EAF9EE" : "#FFF4E6" }]}>
+        <MaterialIcons name={allowed ? "check" : "lock-outline"} color={allowed ? palette.mint : palette.amber} size={20} />
+      </View>
+      <View style={styles.rowCopy}>
+        <View style={styles.rowTitleLine}>
+          <Text style={styles.rowTitle}>{item.name}</Text>
+          <StatusPill label={unavailable ? "Not needed" : allowed ? "Allowed" : "Needs review"} tone={unavailable ? "gray" : allowed ? "green" : "orange"} />
+        </View>
+        <Text style={styles.rowText}>{item.purpose}</Text>
+      </View>
+      {!unavailable && <Switch value={allowed} onValueChange={onChange} trackColor={{ false: "#D0D5DD", true: "#BDECC9" }} thumbColor={allowed ? palette.mint : "#FFFFFF"} style={styles.switch} />}
+    </Card>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { padding: 20, paddingTop: 9, paddingBottom: 27 },
+  notice: { padding: 13, marginTop: 5, marginBottom: 25, flexDirection: "row", gap: 10, borderColor: "#DFF2E3", backgroundColor: "#FAFFFB" },
+  noticeGlyph: { height: 38, width: 38, borderRadius: 12, backgroundColor: "#EAF9EE", alignItems: "center", justifyContent: "center" },
+  noticeCopy: { flex: 1 },
+  noticeTitle: { color: palette.ink, fontSize: 14, fontWeight: "900" },
+  noticeText: { color: palette.muted, fontSize: 11, lineHeight: 16, marginTop: 3 },
+  heading: { color: palette.ink, fontSize: 18, fontWeight: "900", marginBottom: 10 },
+  row: { padding: 12, flexDirection: "row", gap: 10, marginBottom: 9, alignItems: "center" },
+  rowMuted: { opacity: 0.7 },
+  rowGlyph: { height: 39, width: 39, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  rowCopy: { flex: 1 },
+  rowTitleLine: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  rowTitle: { color: palette.ink, fontSize: 13, fontWeight: "900" },
+  rowText: { color: palette.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
+  switch: { marginLeft: -3 },
+  footer: { marginTop: 16, padding: 13, backgroundColor: palette.primaryLight, borderColor: "#DED2FC", flexDirection: "row", gap: 10 },
+  footerCopy: { flex: 1 },
+  footerTitle: { color: palette.ink, fontSize: 13, fontWeight: "900" },
+  footerText: { color: palette.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
 });

@@ -12,16 +12,16 @@ export default function SettingsScreen() {
   const plan = getPlan(currentPlanId);
 
   const accountGroup: SettingsItem[] = [
-    { icon: "person-outline", label: "Account" },
+    { icon: "person-outline", label: "Account", onPress: () => router.push("/settings/account" as never) },
     { icon: "workspace-premium", label: "Subscription", onPress: () => router.push("/plans" as never) },
-    { icon: "extension", label: "Integrations" },
-    { icon: "notifications-none", label: "Notifications" },
-    { icon: "receipt-long", label: "Billing" },
-    { icon: "shield", label: "Security & privacy" },
+    { icon: "extension", label: "Integrations", onPress: () => router.push("/settings/integrations" as never) },
+    { icon: "notifications-none", label: "Notifications", onPress: () => router.push("/settings/notifications" as never) },
+    { icon: "receipt-long", label: "Billing", onPress: () => router.push("/settings/billing" as never) },
+    { icon: "shield", label: "Security & privacy", onPress: () => router.push("/settings/security" as never) },
   ];
   const supportGroup: SettingsItem[] = [
-    { icon: "help-outline", label: "Help & Support" },
-    { icon: "info-outline", label: "About BeepAI" },
+    { icon: "help-outline", label: "Help & Support", onPress: () => router.push("/settings/help" as never) },
+    { icon: "info-outline", label: "About BeepAI", onPress: () => router.push("/settings/about" as never) },
   ];
 
   const handleLogOut = () => {
@@ -33,8 +33,8 @@ export default function SettingsScreen() {
 
   return (
     <AppScreen>
+      <View style={styles.stickyHeader}><BrandMark /></View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.topRow}><BrandMark /></View>
         <Text style={styles.title}>Settings</Text>
 
         <TouchableOpacity activeOpacity={0.76} style={styles.profileRow}>
@@ -79,9 +79,9 @@ function SettingsGroup({ items, style }: { items: SettingsItem[]; style?: object
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingTop: 12, paddingBottom: 40 },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  title: { color: palette.ink, fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -1, marginBottom: 18 },
+  stickyHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 14, backgroundColor: palette.canvas, zIndex: 10 },
+  content: { paddingHorizontal: 20, paddingBottom: 40 },
+  title: { color: palette.ink, fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -1, marginBottom: 18, marginTop: 4 },
   profileRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1, borderColor: palette.line, padding: 14, marginBottom: 20 },
   avatar: { height: 46, width: 46, borderRadius: 23, backgroundColor: palette.ink, alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#FFFFFF", fontWeight: "900", fontSize: 18 },

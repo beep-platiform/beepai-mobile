@@ -36,6 +36,13 @@ export default function TasksScreen() {
 
   return (
     <AppScreen>
+      <View style={styles.stickyHeader}>
+        <BrandMark />
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Filter tasks" style={styles.filterButton}>
+          <MaterialIcons name="tune" size={19} color={palette.ink} />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={filteredRuns}
         keyExtractor={(item) => item.id}
@@ -44,12 +51,6 @@ export default function TasksScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
-            <View style={styles.topRow}>
-              <BrandMark />
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Filter tasks" style={styles.filterButton}>
-                <MaterialIcons name="tune" size={19} color={palette.ink} />
-              </TouchableOpacity>
-            </View>
             <Text style={styles.title}>Tasks</Text>
             <View style={styles.filters}>
               <TaskFilterChip label="All" active={filter === "all"} onPress={() => setFilter("all")} />
@@ -62,7 +63,8 @@ export default function TasksScreen() {
         ListEmptyComponent={
           <Card style={styles.empty}>
             <MaterialIcons name="event-available" size={26} color={palette.primary} />
-            <Text style={styles.emptyText}>No tasks in this view yet.</Text>
+            <Text style={styles.emptyTitle}>No tasks yet</Text>
+            <Text style={styles.emptyText}>Tasks appear here once your automations start running.</Text>
           </Card>
         }
         ListFooterComponent={<View style={{ height: 76 }} />}
@@ -109,10 +111,10 @@ function iconColor(tone: "green" | "blue" | "orange" | "violet" | "red") {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingTop: 12, paddingBottom: 28 },
-  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
+  stickyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 14, backgroundColor: palette.canvas, zIndex: 10 },
+  content: { paddingHorizontal: 20, paddingBottom: 28 },
   filterButton: { width: 39, height: 39, borderRadius: 13, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: palette.line, alignItems: "center", justifyContent: "center" },
-  title: { color: palette.ink, fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -1, marginBottom: 16 },
+  title: { color: palette.ink, fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -1, marginBottom: 16, marginTop: 8 },
   filters: { flexDirection: "row", gap: 8, marginBottom: 20 },
   filterChip: { height: 34, paddingHorizontal: 14, justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: palette.line, backgroundColor: "#FFFFFF" },
   filterChipActive: { backgroundColor: palette.primary, borderColor: palette.primary },
@@ -123,8 +125,9 @@ const styles = StyleSheet.create({
   rowCopy: { flex: 1 },
   rowTitle: { color: palette.ink, fontSize: 14, fontWeight: "900" },
   rowMeta: { color: palette.muted, fontSize: 11, marginTop: 3 },
-  empty: { padding: 22, gap: 9, alignItems: "center" },
-  emptyText: { color: palette.muted, fontSize: 13 },
+  empty: { padding: 22, gap: 6, alignItems: "center" },
+  emptyTitle: { color: palette.ink, fontSize: 15, fontWeight: "900" },
+  emptyText: { color: palette.muted, fontSize: 12, textAlign: "center", lineHeight: 17 },
   newTaskButton: { position: "absolute", left: 20, right: 20, bottom: 18, height: 52, borderRadius: 16, backgroundColor: palette.primary, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, shadowColor: palette.primary, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
   newTaskText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
 });
