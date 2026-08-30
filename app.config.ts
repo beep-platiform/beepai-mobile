@@ -56,7 +56,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#F15B2A",
+      backgroundColor: "#8237F4",
       foregroundImage: "./assets/images/android-icon-foreground.png",
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
@@ -114,8 +114,8 @@ const config: ExpoConfig = {
     [
       "expo-notifications",
       {
-        icon: "./assets/images/android-icon-foreground.png",
-        color: "#F15B2A",
+        icon: "./assets/images/android-icon-monochrome.png",
+        color: "#8237F4",
       },
     ],
     [
