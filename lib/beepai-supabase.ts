@@ -71,6 +71,7 @@ export type DeliveredPackage = {
   schedule: string;
   redemption_code: string;
   delivered_at: string;
+  configuration: unknown;
 };
 
 export type RedeemResult = { ok: true; package: DeliveredPackage } | { ok: false; error: string };

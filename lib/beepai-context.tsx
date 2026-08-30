@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Automation, type PermissionState, plans, type RunRecord } from "@/lib/beepai-data";
+import { Alert } from "react-native";
+import { runWorkflow } from "@/lib/automation-engine";
+import { Automation, parseWorkflowConfiguration, type PermissionState, plans, type RunRecord } from "@/lib/beepai-data";
 
 type NewAutomation = { description: string; tools: string[]; frequency: string };
 
@@ -10,8 +12,8 @@ type BeepAIContextValue = {
   currentPlanId: string;
   runningIds: string[];
   createAutomation: (request: NewAutomation) => string;
-  addDeliveredAutomation: (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string }) => "added" | "duplicate";
-  runAutomation: (id: string) => void;
+  addDeliveredAutomation: (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string; configuration?: unknown }) => "added" | "duplicate";
+  runAutomation: (id: string) => Promise<void>;
   toggleAutomation: (id: string) => void;
   setPermission: (automationId: string, permissionId: string, state: PermissionState) => void;
   selectPlan: (id: string) => void;
@@ -82,13 +84,14 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
     return id;
   };
 
-  const addDeliveredAutomation = (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string }): "added" | "duplicate" => {
+  const addDeliveredAutomation = (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string; configuration?: unknown }): "added" | "duplicate" => {
     let outcome: "added" | "duplicate" = "added";
     setAutomations((items) => {
       if (items.some((item) => item.redemptionCode === pkg.redemptionCode)) {
         outcome = "duplicate";
         return items;
       }
+      const workflow = parseWorkflowConfiguration(pkg.configuration);
       const automation: Automation = {
         id: `delivered-${pkg.id}`,
         name: pkg.name,
@@ -103,13 +106,14 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
         duration: "—",
         source: "delivered",
         redemptionCode: pkg.redemptionCode,
+        workflow,
         permissions: [
           { id: "files", name: "Files access", purpose: "Read only the files you select for this automation.", state: "needed" },
           { id: "notifications", name: "Notifications", purpose: "Tell you when a run finishes or needs attention.", state: "allowed" },
         ],
         steps: [
           { id: "delivered-trigger", label: "Package delivered", detail: "Built and signed off by your BeepAI admin", icon: "schedule", kind: "trigger" },
-          { id: "delivered-process", label: "Run your workflow", detail: "Processes your files locally on this device", icon: "calculate", kind: "process" },
+          { id: "delivered-process", label: "Run your workflow", detail: workflow ? "Processes your files locally on this device" : "Not yet configured by your admin", icon: "calculate", kind: "process" },
           { id: "delivered-notify", label: "Notify you", detail: "Show a local result notification", icon: "notifications", kind: "notify" },
         ],
       };
@@ -118,16 +122,40 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
     return outcome;
   };
 
-  const runAutomation = (id: string) => {
+  const runAutomation = async (id: string) => {
     const automation = automations.find((item) => item.id === id);
     if (!automation || runningIds.includes(id)) return;
     setRunningIds((items) => [...items, id]);
-    setTimeout(() => {
-      const completedAt = "Just now";
+    const completedAt = "Just now";
+    try {
+      if (!automation.workflow || !automation.workflow.length) {
+        Alert.alert("Not ready to run yet", `${automation.name} hasn't been configured with a runnable workflow yet. Contact your BeepAI admin to finish setting it up.`);
+        setRuns((items) => [{ id: `run-${Date.now()}`, automationId: automation.id, automationName: automation.name, status: "failed", timestamp: completedAt, duration: "—", summary: "No workflow has been configured for this automation yet." }, ...items]);
+        return;
+      }
+      const result = await runWorkflow(automation.workflow);
+      if (result.ok) {
+        Alert.alert(`${automation.name} completed`, result.summary);
+        setAutomations((items) => items.map((item) => {
+          if (item.id !== id) return item;
+          const nextTotal = item.totalRuns + 1;
+          const priorSuccesses = Math.round((item.successRate / 100) * item.totalRuns);
+          return { ...item, totalRuns: nextTotal, lastRun: completedAt, duration: "Just now", successRate: Math.round(((priorSuccesses + 1) / nextTotal) * 100) };
+        }));
+        setRuns((items) => [{ id: `run-${Date.now()}`, automationId: automation.id, automationName: automation.name, status: "success", timestamp: completedAt, duration: "Just now", summary: result.summary }, ...items]);
+      } else {
+        Alert.alert("Automation failed", `Step: ${result.error.step}\n\n${result.error.problem}\n\n${result.error.suggestion}`);
+        setAutomations((items) => items.map((item) => {
+          if (item.id !== id) return item;
+          const nextTotal = item.totalRuns + 1;
+          const priorSuccesses = Math.round((item.successRate / 100) * item.totalRuns);
+          return { ...item, totalRuns: nextTotal, lastRun: completedAt, successRate: Math.round((priorSuccesses / nextTotal) * 100) };
+        }));
+        setRuns((items) => [{ id: `run-${Date.now()}`, automationId: automation.id, automationName: automation.name, status: "failed", timestamp: completedAt, duration: "—", summary: `${result.error.problem} ${result.error.suggestion}` }, ...items]);
+      }
+    } finally {
       setRunningIds((items) => items.filter((item) => item !== id));
-      setAutomations((items) => items.map((item) => item.id === id ? { ...item, totalRuns: item.totalRuns + 1, lastRun: completedAt, duration: "18 sec", successRate: item.successRate === 0 ? 100 : item.successRate } : item));
-      setRuns((items) => [{ id: `run-${Date.now()}`, automationId: automation.id, automationName: automation.name, status: "success", timestamp: completedAt, duration: "18 sec", summary: "Completed locally. Your data remains on this device." }, ...items]);
-    }, 900);
+    }
   };
 
   const toggleAutomation = (id: string) => {

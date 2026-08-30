@@ -17,6 +17,53 @@ export type WorkflowStep = {
   kind: "trigger" | "input" | "process" | "output" | "notify";
 };
 
+// Real, executable workflow actions — deliberately data, not code, per the
+// "automations are configuration, never hard-coded" principle. New action
+// types can be added to the engine's registry without touching this shape.
+export type WorkflowAction =
+  | { type: "EXCEL_READ" }
+  | { type: "EXCEL_SUM"; column: string }
+  | { type: "EXCEL_AVERAGE"; column: string }
+  | { type: "EXCEL_COUNT" }
+  | { type: "MESSAGE_TEMPLATE"; template: string };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * Validates the untrusted jsonb `configuration` column from Supabase into a
+ * real, typed workflow — or undefined if it's missing/malformed, so the
+ * engine never runs on a shape it can't trust.
+ */
+export function parseWorkflowConfiguration(configuration: unknown): WorkflowAction[] | undefined {
+  if (!isRecord(configuration) || !Array.isArray(configuration.steps)) return undefined;
+  const steps: WorkflowAction[] = [];
+  for (const raw of configuration.steps) {
+    if (!isRecord(raw) || typeof raw.type !== "string") continue;
+    switch (raw.type) {
+      case "EXCEL_READ":
+        steps.push({ type: "EXCEL_READ" });
+        break;
+      case "EXCEL_COUNT":
+        steps.push({ type: "EXCEL_COUNT" });
+        break;
+      case "EXCEL_SUM":
+        if (typeof raw.column === "string" && raw.column) steps.push({ type: "EXCEL_SUM", column: raw.column });
+        break;
+      case "EXCEL_AVERAGE":
+        if (typeof raw.column === "string" && raw.column) steps.push({ type: "EXCEL_AVERAGE", column: raw.column });
+        break;
+      case "MESSAGE_TEMPLATE":
+        if (typeof raw.template === "string" && raw.template) steps.push({ type: "MESSAGE_TEMPLATE", template: raw.template });
+        break;
+      default:
+        break;
+    }
+  }
+  return steps.length ? steps : undefined;
+}
+
 export type Automation = {
   id: string;
   name: string;
@@ -33,6 +80,7 @@ export type Automation = {
   steps: WorkflowStep[];
   source?: "local" | "delivered";
   redemptionCode?: string;
+  workflow?: WorkflowAction[];
 };
 
 export type RunRecord = {

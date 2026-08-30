@@ -31,6 +31,7 @@ export default function RedeemScreen() {
       description: pkg.description,
       schedule: pkg.schedule,
       redemptionCode: pkg.redemption_code,
+      configuration: pkg.configuration,
     });
     await clearPendingRequest();
     router.replace(`/automation/delivered-${pkg.id}`);
