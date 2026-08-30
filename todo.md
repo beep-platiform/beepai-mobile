@@ -1,4 +1,4 @@
-# Project TODO
+# Project TODO in shop corner
 
 - [x] Establish BeepAI mobile information architecture and visual tokens.
 - [x] Implement the bottom navigation and Home dashboard.
