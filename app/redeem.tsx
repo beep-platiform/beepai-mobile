@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } fro
 import { AppScreen, Card, PageHeader, palette, PrimaryButton } from "@/components/beepai-ui";
 import { useBeepAI } from "@/lib/beepai-context";
 import { redeemPackage } from "@/lib/beepai-supabase";
-import { clearPendingRequest } from "@/lib/use-pending-package";
+import { saveAutomationPackage } from "@/lib/secure-automation-packages";
 
 export default function RedeemScreen() {
   const router = useRouter();
@@ -19,12 +19,19 @@ export default function RedeemScreen() {
     setError(null);
     setLoading(true);
     const result = await redeemPackage(code);
-    setLoading(false);
     if (!result.ok) {
+      setLoading(false);
       setError(result.error);
       return;
     }
     const pkg = result.package;
+    try {
+      await saveAutomationPackage(pkg.id, pkg.javascript_code);
+    } catch (cause) {
+      setLoading(false);
+      setError(cause instanceof Error ? cause.message : "The package could not be encrypted on this device.");
+      return;
+    }
     const outcome = addDeliveredAutomation({
       id: pkg.id,
       name: pkg.name,
@@ -32,8 +39,11 @@ export default function RedeemScreen() {
       schedule: pkg.schedule,
       redemptionCode: pkg.redemption_code,
       configuration: pkg.configuration,
+      packageFileName: pkg.package_file_name,
+      packageExpiresAt: pkg.package_file_expires_at,
+      javascriptPackageId: pkg.id,
     });
-    await clearPendingRequest();
+    setLoading(false);
     router.replace(`/automation/delivered-${pkg.id}`);
     if (outcome === "duplicate") {
       // Already in the workspace — navigation above still takes the user to it.
@@ -48,13 +58,14 @@ export default function RedeemScreen() {
           <Card style={styles.iconCard}>
             <View style={styles.iconWrap}><MaterialIcons name="qr-code-2" size={28} color={palette.primary} /></View>
             <Text style={styles.title}>Package code</Text>
-            <Text style={styles.subtitle}>This links your device to the automation your admin built for you — no account needed.</Text>
+            <Text style={styles.subtitle}>This links your device to the automation your admin built for you — no account needed. No separate interpreter is downloaded. {Platform.OS === "web" ? "Browser preview only: the encryption key lasts for this page session; a reload requires redeeming again while the package is available." : "On iOS/Android, the package is encrypted with a key held in this device’s secure storage."} The private package and any request sample expire seven days after the first redemption; hourly cleanup removes them on its next run after expiry.</Text>
             <TextInput
               value={code}
               onChangeText={(value) => setCode(value.toUpperCase())}
-              placeholder="e.g. 4F82A1B0"
+              placeholder="24-character package code"
               placeholderTextColor="#98A2B3"
               autoCapitalize="characters"
+              maxLength={24}
               style={styles.input}
             />
             {error && <Text style={styles.error}>{error}</Text>}

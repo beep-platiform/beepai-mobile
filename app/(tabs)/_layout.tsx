@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { palette } from "@/components/beepai-ui";
 
 const tabIcons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
-  index: "grid-view",
+  index: "chat-bubble-outline",
   automations: "bolt",
   activity: "checklist",
   profile: "settings",
@@ -25,7 +25,7 @@ export default function TabLayout() {
         tabBarIcon: ({ color, focused }) => <MaterialIcons name={tabIcons[route.name]} size={focused ? 23 : 22} color={color} />,
       })}
     >
-      <Tabs.Screen name="index" options={{ title: "Dashboard" }} />
+      <Tabs.Screen name="index" options={{ title: "Chat" }} />
       <Tabs.Screen name="automations" options={{ title: "Automations" }} />
       <Tabs.Screen name="activity" options={{ title: "Tasks" }} />
       <Tabs.Screen name="profile" options={{ title: "Settings" }} />

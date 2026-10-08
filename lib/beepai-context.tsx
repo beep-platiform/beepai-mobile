@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Alert } from "react-native";
-import { runWorkflow } from "@/lib/automation-engine";
+import { runJavaScriptAutomation, runWorkflow } from "@/lib/automation-engine";
 import { Automation, parseWorkflowConfiguration, type PermissionState, plans, type RunRecord } from "@/lib/beepai-data";
+import { loadAutomationPackage } from "@/lib/secure-automation-packages";
+import { useJavaScriptRuntime } from "@/lib/javascript-runtime-context";
 
 type NewAutomation = { description: string; tools: string[]; frequency: string };
 
@@ -12,7 +14,7 @@ type BeepAIContextValue = {
   currentPlanId: string;
   runningIds: string[];
   createAutomation: (request: NewAutomation) => string;
-  addDeliveredAutomation: (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string; configuration?: unknown }) => "added" | "duplicate";
+  addDeliveredAutomation: (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string; configuration?: unknown; packageFileName: string; packageExpiresAt: string; javascriptPackageId: string }) => "added" | "duplicate";
   runAutomation: (id: string) => Promise<void>;
   toggleAutomation: (id: string) => void;
   setPermission: (automationId: string, permissionId: string, state: PermissionState) => void;
@@ -23,6 +25,7 @@ type BeepAIContextValue = {
 const BeepAIContext = createContext<BeepAIContextValue | undefined>(undefined);
 
 export function BeepAIProvider({ children }: { children: ReactNode }) {
+  const javascriptRunner = useJavaScriptRuntime();
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState("personal");
@@ -84,7 +87,7 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
     return id;
   };
 
-  const addDeliveredAutomation = (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string; configuration?: unknown }): "added" | "duplicate" => {
+  const addDeliveredAutomation = (pkg: { id: string; name: string; description: string; schedule: string; redemptionCode: string; configuration?: unknown; packageFileName: string; packageExpiresAt: string; javascriptPackageId: string }): "added" | "duplicate" => {
     let outcome: "added" | "duplicate" = "added";
     setAutomations((items) => {
       if (items.some((item) => item.redemptionCode === pkg.redemptionCode)) {
@@ -107,13 +110,16 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
         source: "delivered",
         redemptionCode: pkg.redemptionCode,
         workflow,
+        javascriptPackageId: pkg.javascriptPackageId,
+        packageFileName: pkg.packageFileName,
+        packageExpiresAt: pkg.packageExpiresAt,
         permissions: [
           { id: "files", name: "Files access", purpose: "Read only the files you select for this automation.", state: "needed" },
           { id: "notifications", name: "Notifications", purpose: "Tell you when a run finishes or needs attention.", state: "allowed" },
         ],
         steps: [
           { id: "delivered-trigger", label: "Package delivered", detail: "Built and signed off by your BeepAI admin", icon: "schedule", kind: "trigger" },
-          { id: "delivered-process", label: "Run your workflow", detail: workflow ? "Processes your files locally on this device" : "Not yet configured by your admin", icon: "calculate", kind: "process" },
+          { id: "delivered-process", label: "Run your workflow", detail: pkg.javascriptPackageId ? "Runs the downloaded JavaScript package on a file you choose on this device" : workflow ? "Processes your files locally on this device" : "Not yet configured by your admin", icon: "calculate", kind: "process" },
           { id: "delivered-notify", label: "Notify you", detail: "Show a local result notification", icon: "notifications", kind: "notify" },
         ],
       };
@@ -128,19 +134,21 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
     setRunningIds((items) => [...items, id]);
     const completedAt = "Just now";
     try {
-      if (!automation.workflow || !automation.workflow.length) {
+      if (!automation.javascriptPackageId && (!automation.workflow || !automation.workflow.length)) {
         Alert.alert("Not ready to run yet", `${automation.name} hasn't been configured with a runnable workflow yet. Contact your BeepAI admin to finish setting it up.`);
         setRuns((items) => [{ id: `run-${Date.now()}`, automationId: automation.id, automationName: automation.name, status: "failed", timestamp: completedAt, duration: "—", summary: "No workflow has been configured for this automation yet." }, ...items]);
         return;
       }
-      const result = await runWorkflow(automation.workflow);
+      const result = automation.javascriptPackageId
+        ? await runJavaScriptAutomation(await loadAutomationPackage(automation.javascriptPackageId), javascriptRunner)
+        : await runWorkflow(automation.workflow ?? []);
       if (result.ok) {
-        Alert.alert(`${automation.name} completed`, result.summary);
+        Alert.alert(`${automation.name} completed`, "Your local report is ready below.");
         setAutomations((items) => items.map((item) => {
           if (item.id !== id) return item;
           const nextTotal = item.totalRuns + 1;
           const priorSuccesses = Math.round((item.successRate / 100) * item.totalRuns);
-          return { ...item, totalRuns: nextTotal, lastRun: completedAt, duration: "Just now", successRate: Math.round(((priorSuccesses + 1) / nextTotal) * 100) };
+          return { ...item, totalRuns: nextTotal, lastRun: completedAt, duration: "Just now", successRate: Math.round(((priorSuccesses + 1) / nextTotal) * 100), lastReport: result.report ?? { summary: result.summary } };
         }));
         setRuns((items) => [{ id: `run-${Date.now()}`, automationId: automation.id, automationName: automation.name, status: "success", timestamp: completedAt, duration: "Just now", summary: result.summary }, ...items]);
       } else {
@@ -153,6 +161,10 @@ export function BeepAIProvider({ children }: { children: ReactNode }) {
         }));
         setRuns((items) => [{ id: `run-${Date.now()}`, automationId: automation.id, automationName: automation.name, status: "failed", timestamp: completedAt, duration: "—", summary: `${result.error.problem} ${result.error.suggestion}` }, ...items]);
       }
+    } catch (cause) {
+      const problem = cause instanceof Error ? cause.message : "The automation could not run.";
+      Alert.alert("Automation failed", problem);
+      setRuns((items) => [{ id: `run-${Date.now()}`, automationId: automation.id, automationName: automation.name, status: "failed", timestamp: completedAt, duration: "—", summary: problem }, ...items]);
     } finally {
       setRunningIds((items) => items.filter((item) => item !== id));
     }

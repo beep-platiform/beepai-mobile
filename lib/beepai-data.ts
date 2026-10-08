@@ -81,6 +81,10 @@ export type Automation = {
   source?: "local" | "delivered";
   redemptionCode?: string;
   workflow?: WorkflowAction[];
+  javascriptPackageId?: string;
+  packageFileName?: string;
+  packageExpiresAt?: string;
+  lastReport?: unknown;
 };
 
 export type RunRecord = {
@@ -136,5 +140,3 @@ export const plans: SubscriptionPlan[] = [
     features: ["Unlimited automations", "Multi-user workspace", "API access"],
   },
 ];
-
-

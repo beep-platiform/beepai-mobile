@@ -2,10 +2,11 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as XLSX from "xlsx";
 import type { WorkflowAction } from "@/lib/beepai-data";
+import type { JavaScriptRunner } from "@/lib/javascript-runtime-context";
 
 export type EngineError = { step: string; problem: string; suggestion: string };
 export type EngineResult =
-  | { ok: true; summary: string; values: Record<string, string | number> }
+  | { ok: true; summary: string; values: Record<string, string | number>; report?: unknown }
   | { ok: false; error: EngineError };
 
 type Row = Record<string, unknown>;
@@ -14,11 +15,8 @@ type Row = Record<string, unknown>;
  * Runs a real, data-driven workflow entirely on-device. No file ever leaves
  * the phone — parsing and calculation both happen locally.
  *
- * This deliberately does NOT use Python: Excel math doesn't need it, and
- * this Expo app can't run a Python interpreter without ejecting to custom
- * native modules. Python (pandas, Playwright, etc.) is reserved for the
- * future Desktop Agent, where actions like browser automation genuinely
- * require it.
+ * Admin-delivered JavaScript packages use the device's restricted local
+ * JavaScript sandbox; only Excel/CSV workbooks are currently supported inputs.
  */
 export async function runWorkflow(workflow: WorkflowAction[]): Promise<EngineResult> {
   const values: Record<string, string | number> = {};
@@ -93,6 +91,37 @@ export async function runWorkflow(workflow: WorkflowAction[]): Promise<EngineRes
 
   const summary = typeof values.MESSAGE === "string" ? values.MESSAGE : Object.entries(values).map(([key, value]) => `${formatLabel(key)}: ${value}`).join(" · ");
   return { ok: true, summary: summary || "Completed with no output values.", values };
+}
+
+/**
+ * Executes an admin-delivered JavaScript module locally. The user picks their
+ * working file, JavaScript parses only the first sheet into rows, and those
+ * rows plus the decrypted module are passed to the network-restricted sandbox.
+ */
+export async function runJavaScriptAutomation(source: string, runJavaScript: JavaScriptRunner): Promise<EngineResult> {
+  const picked = await DocumentPicker.getDocumentAsync({
+    multiple: false,
+    copyToCacheDirectory: true,
+    type: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel", "text/csv"],
+  });
+  if (picked.canceled || !picked.assets?.[0]) {
+    return { ok: false, error: { step: "CHOOSE_FILE", problem: "No file was selected.", suggestion: "Choose an Excel (.xlsx) or CSV file to run this automation." } };
+  }
+  const asset = picked.assets[0];
+  try {
+    const workbook = asset.file
+      ? XLSX.read(await asset.file.arrayBuffer(), { type: "array" })
+      : XLSX.read(await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 }), { type: "base64" });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) return { ok: false, error: { step: "READ_FILE", problem: "The selected workbook contains no sheets.", suggestion: "Select a valid Excel workbook or CSV file." } };
+    const rows = XLSX.utils.sheet_to_json<Row>(workbook.Sheets[sheetName], { defval: null });
+    if (!rows.length) return { ok: false, error: { step: "READ_FILE", problem: "The selected file contains no data rows.", suggestion: "Add data below the header row and try again." } };
+    const report = await runJavaScript(source, rows, asset.name);
+    const summary = typeof report === "string" ? report : JSON.stringify(report, null, 2);
+    return { ok: true, summary: summary || "The JavaScript automation completed.", values: { JAVASCRIPT_REPORT: summary || "Completed" }, report };
+  } catch (cause) {
+    return { ok: false, error: { step: "JAVASCRIPT_RUN", problem: cause instanceof Error ? cause.message : "The JavaScript automation failed.", suggestion: "The .js file must define `function run(rows, file_name)` and return a JSON-compatible value. Network access is disabled, and your working file stayed on this device." } };
+  }
 }
 
 function missingReadError(step: string): { ok: false; error: EngineError } {

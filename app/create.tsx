@@ -1,11 +1,11 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { AppScreen, Card, PageHeader, palette, PrimaryButton } from "@/components/beepai-ui";
 import { useBeepAI } from "@/lib/beepai-context";
 import { submitAutomationRequest } from "@/lib/beepai-supabase";
-import { rememberPendingRequest } from "@/lib/use-pending-package";
 
 type ToolOption = { name: string; icon: keyof typeof MaterialIcons.glyphMap; color: string };
 const tools: ToolOption[] = [
@@ -24,10 +24,20 @@ export default function CreateAutomationScreen() {
   const [frequency, setFrequency] = useState("Weekly");
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [sampleFile, setSampleFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const toggleTool = (name: string) =>
     setSelectedTools((items) => (items.includes(name) ? items.filter((item) => item !== name) : [...items, name]));
+
+  const pickSampleFile = async () => {
+    const picked = await DocumentPicker.getDocumentAsync({
+      type: [".xlsx", ".xls", ".csv", ".pdf", ".docx", ".doc", "application/pdf", "text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (!picked.canceled && picked.assets?.[0]) setSampleFile(picked.assets[0]);
+  };
 
   const create = async () => {
     if (!description.trim()) {
@@ -39,24 +49,20 @@ export default function CreateAutomationScreen() {
       return;
     }
     setSubmitting(true);
-    const id = createAutomation({ description, tools: selectedTools, frequency });
     const result = await submitAutomationRequest({
       description,
       involvedTools: selectedTools,
       frequency,
       contactName: contactName.trim(),
       contactPhone: contactPhone.trim(),
+      sampleFile,
     });
     setSubmitting(false);
-    if (result.ok) {
-      await rememberPendingRequest(contactPhone.trim());
-    }
     if (!result.ok) {
-      Alert.alert(
-        "Saved on this device only",
-        `BeepAI couldn't reach the server (${result.error}). Your request is saved locally — try again once you're back online so your admin can see it.`,
-      );
+      Alert.alert("Request not sent", `Beep could not submit the request${sampleFile ? " and sample file" : ""}: ${result.error}. Nothing has been queued for the admin yet.`);
+      return;
     }
+    const id = createAutomation({ description, tools: selectedTools, frequency });
     router.replace(`/automation/${id}`);
   };
 
@@ -92,6 +98,18 @@ export default function CreateAutomationScreen() {
                 />
               </Card>
               <Text style={styles.helper}>Be specific about the files, calculation, and result you need. Your request is reviewed before it runs.</Text>
+              <Card style={styles.sampleCard}>
+                <View style={styles.sampleHeading}><MaterialIcons name="attach-file" size={19} color={palette.primary} /><Text style={styles.sampleTitle}>Add a sample file for the admin</Text></View>
+                <Text style={styles.sampleCopy}>This optional example is uploaded to private Supabase storage and is visible to authorized Beep admins. Redact sensitive values before attaching it. The task file you later run stays on your device.</Text>
+                <TouchableOpacity accessibilityRole="button" activeOpacity={0.82} onPress={() => void pickSampleFile()} style={styles.sampleButton}>
+                  <MaterialIcons name={sampleFile ? "check-circle" : "upload-file"} size={19} color={palette.primary} />
+                  <Text numberOfLines={1} style={styles.sampleButtonText}>{sampleFile ? sampleFile.name : "Choose Excel, Word, PDF or CSV"}</Text>
+                  <MaterialIcons name="arrow-forward" size={17} color={palette.primary} />
+                </TouchableOpacity>
+                {sampleFile && <TouchableOpacity onPress={() => setSampleFile(null)} style={styles.removeSample}><Text style={styles.removeSampleText}>Remove selected file</Text></TouchableOpacity>}
+              <Text style={styles.sampleRetention}>Private sample files expire after 30 days if no package is redeemed, or 7 days after the customer redeems a package. An hourly cleanup removes expired files on its next run, so removal may happen later than the expiry time. Do not attach data you do not want the Beep admin to review.</Text>
+              <Text style={styles.sampleRetention}>Current local run inputs: Excel (.xlsx/.xls) and CSV only. Word/PDF samples may help the admin review a request, but those formats cannot yet be run in the app.</Text>
+              </Card>
               <Text style={styles.label}>What is involved?</Text>
             </>
           }
@@ -116,7 +134,7 @@ export default function CreateAutomationScreen() {
                 <MaterialIcons name="shield" color={palette.mint} size={20} />
                 <View style={styles.privacyCopy}>
                   <Text style={styles.privacyTitle}>Private by design</Text>
-                  <Text style={styles.privacyText}>Your work files stay on your device. BeepAI asks before any external connection is used.</Text>
+                  <Text style={styles.privacyText}>Only the sample you choose is uploaded for admin review. The actual work file used when the automation runs stays on your device.</Text>
                 </View>
               </Card>
               <PrimaryButton label={submitting ? "Sending..." : "Send request"} icon="arrow-forward" onPress={create} style={styles.createButton} />
@@ -155,6 +173,15 @@ const styles = StyleSheet.create({
   promptIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: palette.primaryLight, alignItems: "center", justifyContent: "center", marginBottom: 11 },
   promptTitle: { color: palette.ink, fontSize: 15, fontWeight: "900", marginBottom: 9 },
   promptInput: { minHeight: 126, fontSize: 14, lineHeight: 20, color: palette.ink, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: palette.line, backgroundColor: "#FBFBFD" },
+  sampleCard: { padding: 13, marginBottom: 18, borderColor: "#E5E7EB" },
+  sampleHeading: { flexDirection: "row", alignItems: "center", gap: 7 },
+  sampleTitle: { color: palette.ink, fontSize: 13, fontWeight: "900" },
+  sampleCopy: { color: palette.muted, fontSize: 11, lineHeight: 16, marginTop: 6 },
+  sampleButton: { flexDirection: "row", alignItems: "center", gap: 9, minHeight: 44, marginTop: 11, paddingHorizontal: 11, borderWidth: 1, borderColor: palette.line, borderRadius: 12, backgroundColor: "#FBFBFD" },
+  sampleButtonText: { flex: 1, color: palette.ink, fontSize: 12, fontWeight: "800" },
+  sampleRetention: { color: palette.muted, fontSize: 10, lineHeight: 14, marginTop: 8 },
+  removeSample: { alignSelf: "flex-start", marginTop: 7 },
+  removeSampleText: { color: palette.danger, fontSize: 10, fontWeight: "800" },
   helper: { color: palette.muted, fontSize: 11, lineHeight: 16, marginTop: 9, marginBottom: 20 },
   label: { color: palette.ink, fontSize: 15, fontWeight: "900", marginBottom: 11 },
   toolRow: { gap: 9, marginBottom: 9 },

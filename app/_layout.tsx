@@ -2,10 +2,12 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BeepAIProvider } from "@/lib/beepai-context";
+import { JavaScriptRuntimeProvider } from "@/lib/javascript-runtime";
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
+      <JavaScriptRuntimeProvider>
       <BeepAIProvider>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
@@ -26,6 +28,7 @@ export default function RootLayout() {
           <Stack.Screen name="run/[id]" />
         </Stack>
       </BeepAIProvider>
+      </JavaScriptRuntimeProvider>
     </SafeAreaProvider>
   );
 }
