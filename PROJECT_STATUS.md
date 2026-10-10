@@ -47,6 +47,6 @@ This file is the living handoff. Before stopping any future task/session, update
 ### Latest session handoff
 
 - **Completed:** Added the mandatory handoff rule to both copies of `BEEP_PROJECT_RULES.md` and both `DEVELOPMENT.md` guides, and added this required process plus a session handoff to each repository's `PROJECT_STATUS.md`.
-- **Stopping point:** Documentation changes are complete locally and awaiting final validation/commit/push.
-- **Checks:** The previous docs link checks passed. Re-run Markdown relative-link checks, `git diff --check`, shared-rules parity, then verify commits and clean trees.
-- **Next:** Push the handoff-policy documentation to both repositories, then proceed with physical Android sample-upload/redemption/run validation when the owner is ready. Do not treat browser preview as native SecureStore/device verification.
+- **Stopping point:** Handoff policy is complete and pushed to both repositories: mobile `3f0a026`, website `40cfaa0`. This status refresh records completion; it is committed separately afterward.
+- **Checks:** Relative Markdown links resolve in both repos; `git diff --check` passed; shared BEEP rules are identical. Only documentation changed; application source and settings were untouched.
+- **Next:** Perform physical Android sample-upload/redemption/run validation when the owner is ready. Do not treat browser preview as native SecureStore/device verification. Update both relevant `PROJECT_STATUS.md` files before stopping future work.
