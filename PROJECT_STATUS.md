@@ -2,7 +2,7 @@
 
 **Status as of:** 2026-10-10  
 **Repository:** `beep-platiform/beepai-mobile` (`main`)  
-**Code baseline before documentation updates:** `aff9887` (50 MB sample upload cap); handoff-policy documentation is being added in the current session.
+**Mobile application code baseline:** `aff9887` (50 MB sample upload cap). Documentation updates do not change application code.
 
 Read [BEEP_PROJECT_RULES.md](BEEP_PROJECT_RULES.md) before continuing. This handoff supersedes older, incomplete status checkboxes in `todo.md`; that legacy file was not edited as part of this handoff.
 
@@ -47,6 +47,6 @@ This file is the living handoff. Before stopping any future task/session, update
 ### Latest session handoff
 
 - **Completed:** Added the mandatory handoff rule to both copies of `BEEP_PROJECT_RULES.md` and both `DEVELOPMENT.md` guides, and added this required process plus a session handoff to each repository's `PROJECT_STATUS.md`.
-- **Stopping point:** Handoff policy is complete and pushed to both repositories: mobile `3f0a026`, website `40cfaa0`. This status refresh records completion; it is committed separately afterward.
+- **Stopping point:** Handoff policy is complete and pushed to both repositories: mobile `3f0a026`, website `40cfaa0`. This current living handoff records the final validation and next project task.
 - **Checks:** Relative Markdown links resolve in both repos; `git diff --check` passed; shared BEEP rules are identical. Only documentation changed; application source and settings were untouched.
 - **Next:** Perform physical Android sample-upload/redemption/run validation when the owner is ready. Do not treat browser preview as native SecureStore/device verification. Update both relevant `PROJECT_STATUS.md` files before stopping future work.
