@@ -51,6 +51,6 @@ This file is the living handoff. Before stopping any future task/session, update
 ### Latest session handoff
 
 - **Completed:** Clarified in both shared rules/development guides that customers may request any suitable task/file type; the rows/file-name interface is current v1 only. Updated mobile Security & Help copy to accurately describe local working-file privacy without claiming Word/PDF execution exists. Updated technical research notes.
-- **Stopping point:** Documentation and customer-facing copy changed; no parser, package contract, or runtime support for new formats was implemented in this task.
+- **Stopping point:** The policy, technical notes, customer copy, and handoff update are pushed in mobile commit `df2dc09` (website mirror `be79d36`). No parser, package contract, or runtime support for new formats was implemented in this task.
 - **Checks:** Mobile TypeScript check and tests passed (6 passed, 1 skipped); `git diff --check` passed in both repos; Markdown relative links resolve; shared rules are byte-for-byte identical.
-- **Next:** Commit/push these mobile and website changes separately, then refresh this handoff with the pushed commit IDs. Afterward, design an extensible local input-adapter/contract plan before implementing a requested non-tabular format. Keep physical Android file-upload/redemption/run validation as a separate open item.
+- **Next:** Design an extensible local input-adapter/contract plan before implementing a requested non-tabular format, preserving the current v1 package contract. Keep physical Android file-upload/redemption/run validation as a separate open item. Update both handoffs before stopping again.
