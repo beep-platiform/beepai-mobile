@@ -29,6 +29,10 @@ Read [BEEP_PROJECT_RULES.md](BEEP_PROJECT_RULES.md) before continuing. This hand
 3. Validate the reported missing-final-column concern with a synthetic workbook whose last column contains known values. If examining a customer sample, use only the explicitly attached sample and compare the original against the downloaded private object; never upload the actual working workbook used for a payroll run. Byte-size equality alone does not prove content equality.
 4. Exercise the 50 MiB boundary using synthetic data and ensure both the client and private Storage bucket reject files above the cap.
 
+## Product format scope and current runtime version
+
+Customers may request automations for the file types and tasks they need; Excel, Word, PDF, CSV, and other formats are not product-level exclusions. The currently implemented custom JavaScript package v1 accepts locally parsed Excel/CSV rows through `run(rows, file_name)`. Word/PDF and other formats are not executable in this app version yet. Future support requires task-specific local parsers/adapters, bounded inputs/outputs, tests, and a versioned contract where needed, while preserving existing v1 packages and the local-only data boundary. Do not promise a format until implemented and verified on relevant platforms.
+
 ## Deferred by product owner
 
 - **Visual redesign/polish:** owner said the current interface looks worse and would be handled later. Do not silently expand this task into a redesign.
@@ -46,7 +50,7 @@ This file is the living handoff. Before stopping any future task/session, update
 
 ### Latest session handoff
 
-- **Completed:** Added the mandatory handoff rule to both copies of `BEEP_PROJECT_RULES.md` and both `DEVELOPMENT.md` guides, and added this required process plus a session handoff to each repository's `PROJECT_STATUS.md`.
-- **Stopping point:** Handoff policy is complete and pushed to both repositories: mobile `3f0a026`, website `40cfaa0`. This current living handoff records the final validation and next project task.
-- **Checks:** Relative Markdown links resolve in both repos; `git diff --check` passed; shared BEEP rules are identical. Only documentation changed; application source and settings were untouched.
-- **Next:** Perform physical Android sample-upload/redemption/run validation when the owner is ready. Do not treat browser preview as native SecureStore/device verification. Update both relevant `PROJECT_STATUS.md` files before stopping future work.
+- **Completed:** Clarified in both shared rules/development guides that customers may request any suitable task/file type; the rows/file-name interface is current v1 only. Updated mobile Security & Help copy to accurately describe local working-file privacy without claiming Word/PDF execution exists. Updated technical research notes.
+- **Stopping point:** Documentation and customer-facing copy changed; no parser, package contract, or runtime support for new formats was implemented in this task.
+- **Checks:** Mobile TypeScript check and tests passed (6 passed, 1 skipped); `git diff --check` passed in both repos; Markdown relative links resolve; shared rules are byte-for-byte identical.
+- **Next:** Commit/push these mobile and website changes separately, then refresh this handoff with the pushed commit IDs. Afterward, design an extensible local input-adapter/contract plan before implementing a requested non-tabular format. Keep physical Android file-upload/redemption/run validation as a separate open item.

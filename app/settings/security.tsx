@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppScreen, Card, PageHeader, palette } from "@/components/beepai-ui";
 
 const points: { icon: keyof typeof MaterialIcons.glyphMap; title: string; text: string }[] = [
-  { icon: "smartphone", title: "Your files stay on your device", text: "Excel, Word, and PDF processing runs locally. BeepAI's servers never receive your source documents." },
+  { icon: "smartphone", title: "Your files stay on your device", text: "When you run an automation, its supported working file is processed locally. BeepAI's servers never receive the working file or report. Available file types depend on the automation and app version." },
   { icon: "vpn-key", title: "Package codes, not passwords", text: "A delivered automation is retrieved with a one-time code generated specifically for you — it can't be guessed or reused for anyone else's package." },
   { icon: "lock", title: "Row-level access control", text: "The BeepAI backend enforces per-record permissions in the database itself, not just in the app — so even a direct API request can't read another customer's data." },
   { icon: "visibility-off", title: "Minimum data collection", text: "Only your name, contact details, and automation description are stored — no documents, no browsing history, no device tracking." },

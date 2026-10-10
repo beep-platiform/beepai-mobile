@@ -7,7 +7,7 @@ const faqs = [
   { q: "How do I get a new automation built?", a: "Go to Tasks or Automations and tap the add button to describe your task. Your BeepAI admin reviews it and builds it for you." },
   { q: "How do I receive my finished automation?", a: "Once it's built, your admin calls or messages you with a package code. Enter it from the Dashboard's \"Redeem package\" banner or Automations tab." },
   { q: "What if I lose my package code?", a: "Contact your BeepAI admin directly — they can look up your delivered package and share the code again." },
-  { q: "Does BeepAI see my files?", a: "No. Automations process Excel, Word, and PDF files locally on your device. See Security & Privacy for details." },
+  { q: "Does BeepAI see my files?", a: "Your working file and run results stay on your device. The file types an automation can process depend on that automation and your app version. Only a sample you choose to attach to a request is uploaded for an authorized admin to review. See Security & Privacy for details." },
 ];
 
 export default function HelpScreen() {

@@ -12,7 +12,7 @@
    ```
 5. For a browser preview use `npx expo start --web`. For an internal Android build use `npx eas-cli build --platform android --profile preview`. Verify actual native behavior on-device; the browser preview does not provide native SecureStore semantics.
 6. For request-sample changes, preserve original bytes, validate measured size against picker-reported size, test 50 MiB boundary conditions, and keep MIME/privacy/retention behavior unchanged unless a separately approved requirement says otherwise. Use synthetic workbooks with a populated final column.
-7. For automation-runtime changes, preserve the plain `run(rows, file_name)` contract and isolated Worker/WebView boundary. Do not forward workbook rows or calculation results to Supabase.
+7. The plain `run(rows, file_name)` function is the current v1 tabular (Excel/CSV) contract, not a permanent limit on customer requests. For Word, PDF, or another requested file type, keep execution local and the Worker/WebView boundary intact; design and version a task-specific input contract/local parser adapter, preserve existing v1 packages, and add tests before advertising support. Do not forward working-file contents or calculation results to Supabase.
 8. Before pushing, run `npm run check`, `npm test`, and `git diff --check`; review that no secrets, sample content, or unrequested backend settings are included.
 
 Useful implementation paths are listed in [README.md](README.md). The older `todo.md` predates the current private JavaScript delivery work; treat [PROJECT_STATUS.md](PROJECT_STATUS.md) as the current handoff until that legacy file is reconciled.

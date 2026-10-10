@@ -7,7 +7,7 @@ These rules are the shared product/security contract for the mobile app and admi
 - Supabase is the control/metadata layer: request descriptions/status, contact details, account/license/subscription metadata, redemption state, private Storage object references, file name/type/size, expiry/deletion timestamps, and non-content workflow metadata.
 - Do not store customer working files, payroll data, run results, or permanent automation source code in database rows.
 - The user's actual working files and calculated results stay on the user's device. Never upload the working workbook selected for a later run.
-- Only an optional sample that the customer explicitly attaches to a request may leave the device for admin review. Tell the customer it is private but visible to authorized admins; recommend redacting sensitive values. Word/PDF samples are review-only, not current execution inputs.
+- Customers may request an automation for the task and file types that fit their needs; Excel, Word, PDF, CSV, and other formats are not product-level exclusions. The implementation must assess the specific task, format, and platform support before promising delivery. Only an optional sample the customer explicitly attaches may leave the device for admin review. Tell the customer it is private but visible to authorized admins; recommend redacting sensitive values.
 
 ## Private temporary file exceptions
 
@@ -24,11 +24,12 @@ These rules are the shared product/security contract for the mobile app and admi
 
 ## JavaScript package and local execution
 
-- Approved artifact is a plain `.js` file defining `function run(rows, file_name)`. No `import`/`export`. Accept locally parsed rows from the first Excel/CSV sheet plus the file name; return JSON-compatible output.
-- Parse Excel/CSV locally. Only the explicitly attached sample is uploaded. Do not transmit a customer's selected working workbook or report for execution.
+- **Current v1 tabular contract:** an approved plain `.js` file defines `function run(rows, file_name)` (no `import`/`export`), receives locally parsed rows from the first Excel/CSV sheet plus the file name, and returns JSON-compatible output. This is the current implementation, not a permanent limit on which automations customers may request.
+- For a new task/file format (including Word, PDF, or other types), first verify it can be handled within the device/browser and sandbox constraints. If needed, design a versioned input contract and a local parser/adapter for that format; keep the existing v1 contract working for existing packages. Do not promise or mark a format supported until the parser, UI, bounded input/output, tests, and relevant native-platform behavior are implemented and verified.
+- Parse all working inputs locally using the task-specific supported adapter. Only an explicitly attached sample is uploaded. Never transmit a customer's selected working file or report for execution.
 - Run the approved code in a fresh dedicated JavaScript Worker in the restricted WebView/iframe runtime. No DOM, app bridge, or network access; bounded input/output and execution time; terminate after each run. Use the device/browser's built-in JavaScript engine—do not install/download a separate interpreter.
 - Encrypt downloaded JavaScript on-device using the existing design. Native key is held in Expo SecureStore (device-held key); web-preview key is memory-only. In web preview, a reload/closed session requires redeeming again while the package remains available. Do not describe browser storage as equivalent to native secure storage.
-- Current custom run inputs: Excel `.xlsx`/`.xls` and CSV. Word/PDF may be reviewed as samples but are not execution inputs. Be honest about unsupported formats and platform limits.
+- Current custom-package v1 run inputs are Excel `.xlsx`/`.xls` and CSV. Word/PDF and other formats may be requested and may be attached as samples for admin review, but they are not yet executable by this version. State this current implementation limit honestly while treating requested formats as candidates for future local support, not as forbidden product scope.
 
 ## Repository and change discipline
 
