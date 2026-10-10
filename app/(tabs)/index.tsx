@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AppScreen, BrandMark, Card, palette } from "@/components/beepai-ui";
 
 export default function DashboardScreen() {
@@ -20,7 +20,12 @@ export default function DashboardScreen() {
           <View style={styles.headerBadge}><MaterialIcons name="lock" size={14} color={palette.mint} /><Text style={styles.headerBadgeText}>PRIVATE</Text></View>
         </View>
 
-        <View style={styles.content}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.welcome}>
             <View style={styles.welcomeIcon}><MaterialIcons name="auto-awesome" size={23} color={palette.primary} /></View>
             <Text style={styles.title}>What would you like to do?</Text>
@@ -58,7 +63,7 @@ export default function DashboardScreen() {
             <FlowStep number="4" text="You choose your working file and run the task locally." last />
             <View style={styles.privacyNote}><MaterialIcons name="shield" size={15} color={palette.mint} /><Text style={styles.privacyText}>Only the sample you explicitly attach is sent for admin review. The actual task file stays on your device.</Text></View>
           </Card>
-        </View>
+        </ScrollView>
       </View>
     </AppScreen>
   );
@@ -93,7 +98,8 @@ const styles = StyleSheet.create({
   privateText: { fontSize: 10, color: palette.muted, fontWeight: "600" },
   headerBadge: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: "#D9F1E1", backgroundColor: "#F2FBF5", borderRadius: 99, paddingHorizontal: 9, paddingVertical: 6 },
   headerBadgeText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.5, color: palette.mint },
-  content: { flex: 1, width: "100%", maxWidth: 620, alignSelf: "center", paddingHorizontal: 18, paddingTop: 22, paddingBottom: 25 },
+  scrollArea: { flex: 1 },
+  content: { flexGrow: 1, width: "100%", maxWidth: 620, alignSelf: "center", paddingHorizontal: 18, paddingTop: 22, paddingBottom: 25 },
   welcome: { marginBottom: 20 },
   welcomeIcon: { width: 45, height: 45, borderRadius: 15, backgroundColor: "#FFF0E4", alignItems: "center", justifyContent: "center", marginBottom: 12 },
   title: { fontSize: 24, lineHeight: 30, color: palette.ink, fontWeight: "900", letterSpacing: -0.7 },

@@ -31,7 +31,10 @@ Deno.serve(async (request: Request) => {
     .eq("redemption_code", code)
     .not("delivered_at", "is", null)
     .maybeSingle();
-  if (error) return json({ error: "Could not verify that package right now." }, 503);
+  if (error) {
+    console.error("redeem package lookup failed", { code: error.code, message: error.message });
+    return json({ error: "Could not verify that package right now." }, 503);
+  }
   if (!item) return json({ error: "No package matches that code. Double-check it and try again." }, 404);
 
   if (!item.package_file_path || item.package_file_deleted_at || !item.package_file_name) {
