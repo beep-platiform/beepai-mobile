@@ -2,6 +2,7 @@ import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedSampleFileSize } from "./sample-file-integrity";
 
 const extra = (Constants.expoConfig?.extra ?? {}) as { supabaseUrl?: string; supabaseAnonKey?: string };
 const url = extra.supabaseUrl;
@@ -21,7 +22,6 @@ export type AutomationRequestInput = {
 export type SubmitResult = { ok: true; requestId: string } | { ok: false; error: string };
 
 const SAMPLE_BUCKET = "beepai-request-samples";
-const MAX_SAMPLE_BYTES = 10 * 1024 * 1024;
 const fileTypes: Record<string, string> = {
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   xls: "application/vnd.ms-excel",
@@ -53,17 +53,18 @@ export async function submitAutomationRequest(input: AutomationRequestInput): Pr
   const requestId = Crypto.randomUUID();
   let sampleFilePath: string | null = null;
   let sampleFileType: string | null = null;
+  let sampleFileSize: number | null = null;
   let sampleUploadBody: File | ArrayBuffer | null = null;
   if (input.sampleFile) {
     const asset = input.sampleFile;
     const extension = asset.name.split(".").pop()?.toLowerCase() ?? "";
     sampleFileType = fileTypes[extension] ?? asset.mimeType ?? null;
     if (!(extension in fileTypes)) return { ok: false, error: "Attach an XLSX, XLS, CSV, PDF, DOCX, or DOC sample file." };
-    if ((asset.size ?? 0) > MAX_SAMPLE_BYTES) return { ok: false, error: "Sample files must be 10 MB or smaller." };
     try {
       const fileId = Crypto.randomUUID();
       sampleFilePath = `${requestId}/${fileId}.${extension}`;
       sampleUploadBody = await getUploadBody(asset);
+      sampleFileSize = getVerifiedSampleFileSize(sampleUploadBody, asset.size);
     } catch (cause) {
       return { ok: false, error: cause instanceof Error ? cause.message : "The sample file could not be uploaded." };
     }
@@ -80,7 +81,7 @@ export async function submitAutomationRequest(input: AutomationRequestInput): Pr
     sample_file_path: sampleFilePath,
     sample_file_name: input.sampleFile?.name ?? null,
     sample_file_type: sampleFileType,
-    sample_file_size: input.sampleFile?.size ?? null,
+    sample_file_size: sampleFileSize,
     sample_file_uploaded_at: sampleFilePath ? new Date().toISOString() : null,
     sample_file_expires_at: sampleFilePath ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
     status: "submitted",
