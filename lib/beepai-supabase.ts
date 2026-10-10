@@ -113,13 +113,28 @@ export type DeliveredPackage = {
 
 export type RedeemResult = { ok: true; package: DeliveredPackage } | { ok: false; error: string };
 
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  const fallback = error instanceof Error ? error.message : "Package redemption failed. Please try again.";
+  const context = (error as { context?: unknown } | null)?.context;
+  if (typeof Response !== "undefined" && context instanceof Response) {
+    try {
+      const payload = await context.clone().json() as { error?: unknown; message?: unknown };
+      if (typeof payload.error === "string" && payload.error.trim()) return payload.error;
+      if (typeof payload.message === "string" && payload.message.trim()) return payload.message;
+    } catch {
+      // Keep the Supabase error as a safe fallback if the response is not JSON.
+    }
+  }
+  return fallback;
+}
+
 /** A redemption code is a bearer credential; the server returns a short-lived download URL. */
 export async function redeemPackage(code: string): Promise<RedeemResult> {
   if (!supabase) return { ok: false, error: "BeepAI cloud is not configured on this build." };
   const trimmed = code.trim().toUpperCase();
   if (!trimmed) return { ok: false, error: "Enter the package code your BeepAI admin sent you." };
   const { data, error } = await supabase.functions.invoke("redeem-beep-package", { body: { code: trimmed } });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await getFunctionErrorMessage(error) };
   if (!data?.package || !data?.signedUrl) return { ok: false, error: "No package matches that code. Double-check it and try again." };
   const fileResponse = await fetch(data.signedUrl);
   if (!fileResponse.ok) return { ok: false, error: "The package download failed. Check your connection and try again." };
