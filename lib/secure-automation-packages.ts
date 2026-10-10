@@ -4,7 +4,8 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import nacl from "tweetnacl";
 
-const KEY_NAME = "@beepai/automation-package-key-v2";
+// expo-secure-store key names may contain only alphanumerics, ".", "-", and "_".
+const KEY_NAME = "beepai.automation-package-key-v3";
 const PACKAGE_PREFIX = "@beepai/automation-package-v2:";
 let webSessionKey: Uint8Array | null = null;
 
