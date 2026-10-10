@@ -19,8 +19,9 @@ describe("sample-file upload integrity", () => {
     expect(() => getVerifiedSampleFileSize(new ArrayBuffer(0), 0)).toThrow(/empty/i);
   });
 
-  it("rejects files over the existing 10 MB limit", () => {
-    const oversizedFileLike = { size: 10 * 1024 * 1024 + 1 } as File;
-    expect(() => getVerifiedSampleFileSize(oversizedFileLike)).toThrow(/10 MB/i);
+  it("accepts files at 50 MB and rejects files over the limit", () => {
+    const limit = 50 * 1024 * 1024;
+    expect(getVerifiedSampleFileSize({ size: limit } as File)).toBe(limit);
+    expect(() => getVerifiedSampleFileSize({ size: limit + 1 } as File)).toThrow(/50 MB/i);
   });
 });

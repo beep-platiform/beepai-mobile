@@ -100,7 +100,7 @@ export default function CreateAutomationScreen() {
               <Text style={styles.helper}>Be specific about the files, calculation, and result you need. Your request is reviewed before it runs.</Text>
               <Card style={styles.sampleCard}>
                 <View style={styles.sampleHeading}><MaterialIcons name="attach-file" size={19} color={palette.primary} /><Text style={styles.sampleTitle}>Add a sample file for the admin</Text></View>
-                <Text style={styles.sampleCopy}>This optional example is uploaded to private Supabase storage and is visible to authorized Beep admins. Redact sensitive values before attaching it. The task file you later run stays on your device.</Text>
+                <Text style={styles.sampleCopy}>This optional example is uploaded to private Supabase storage and is visible to authorized Beep admins. Redact sensitive values before attaching it. Sample uploads may be up to 50 MB. The task file you later run stays on your device.</Text>
                 <TouchableOpacity accessibilityRole="button" activeOpacity={0.82} onPress={() => void pickSampleFile()} style={styles.sampleButton}>
                   <MaterialIcons name={sampleFile ? "check-circle" : "upload-file"} size={19} color={palette.primary} />
                   <Text numberOfLines={1} style={styles.sampleButtonText}>{sampleFile ? sampleFile.name : "Choose Excel, Word, PDF or CSV"}</Text>
