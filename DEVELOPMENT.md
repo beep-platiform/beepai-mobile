@@ -16,3 +16,7 @@
 8. Before pushing, run `npm run check`, `npm test`, and `git diff --check`; review that no secrets, sample content, or unrequested backend settings are included.
 
 Useful implementation paths are listed in [README.md](README.md). The older `todo.md` predates the current private JavaScript delivery work; treat [PROJECT_STATUS.md](PROJECT_STATUS.md) as the current handoff until that legacy file is reconciled.
+
+## Required handoff before stopping
+
+Before ending a task/session or handing work to another person or AI, update `PROJECT_STATUS.md` with the date, what was completed, the exact current/stopping point, checks run and remaining verification, blockers or owner decisions needed, and the next concrete action(s) in priority order. Mention relevant changed files and commit status/hash. Never include secrets, redemption codes, customer details, sample content, or payroll results. This is required for partial and blocked work as well as completed work. If a change touches shared Supabase code/schema, update the website repository's `PROJECT_STATUS.md` too and verify the shared files match. Keep the handoff current; do not leave old next steps appearing active after they are finished.

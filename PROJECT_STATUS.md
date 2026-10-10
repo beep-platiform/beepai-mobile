@@ -2,7 +2,7 @@
 
 **Status as of:** 2026-10-10  
 **Repository:** `beep-platiform/beepai-mobile` (`main`)  
-**Code baseline before this documentation commit:** `aff9887` (50 MB sample upload cap)
+**Code baseline before documentation updates:** `aff9887` (50 MB sample upload cap); handoff-policy documentation is being added in the current session.
 
 Read [BEEP_PROJECT_RULES.md](BEEP_PROJECT_RULES.md) before continuing. This handoff supersedes older, incomplete status checkboxes in `todo.md`; that legacy file was not edited as part of this handoff.
 
@@ -39,3 +39,14 @@ Read [BEEP_PROJECT_RULES.md](BEEP_PROJECT_RULES.md) before continuing. This hand
 - The most recent “Ndashaka automation” request had no optional sample attached. Do not assume every request contains a workbook.
 - Do not promise cloud deletion at the exact expiry instant: the hourly cleanup removes expired bytes on its next run.
 - No active code change is recorded as in progress beyond this handoff; the concrete next action is device validation.
+
+## Handoff maintenance — required for every developer/AI
+
+This file is the living handoff. Before stopping any future task/session, update it with the date; work completed; exact current/stopping point; checks run and checks still needed; blockers/owner decisions; and next concrete actions in priority order. Note changed files and commit status/hash where useful. Include this for partial or blocked work too, but never put secrets, redemption codes, customer contact details, sample contents, or payroll results here. Remove or mark completed obsolete next steps so the next contributor is not misled. If shared backend changes affect both repositories, update both project status files.
+
+### Latest session handoff
+
+- **Completed:** Added the mandatory handoff rule to both copies of `BEEP_PROJECT_RULES.md` and both `DEVELOPMENT.md` guides, and added this required process plus a session handoff to each repository's `PROJECT_STATUS.md`.
+- **Stopping point:** Documentation changes are complete locally and awaiting final validation/commit/push.
+- **Checks:** The previous docs link checks passed. Re-run Markdown relative-link checks, `git diff --check`, shared-rules parity, then verify commits and clean trees.
+- **Next:** Push the handoff-policy documentation to both repositories, then proceed with physical Android sample-upload/redemption/run validation when the owner is ready. Do not treat browser preview as native SecureStore/device verification.

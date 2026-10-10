@@ -37,3 +37,10 @@ These rules are the shared product/security contract for the mobile app and admi
 - Before changing file caps or lifecycle behavior, update and verify the mobile validator, Storage bucket migration/live configuration, tests, and documentation together. A file cap change must not silently change the private/public setting, MIME allowlist, retention, or package cap.
 - Never commit credentials, bearer codes, sample contents, customer contact details, or payroll results. Use synthetic fixtures for tests and keep secrets out of client bundles and logs.
 - Keep customer-facing copy accurate about what is uploaded, who may inspect samples, retention, execution location, and browser-preview limitations.
+
+## Required session handoff
+
+- Every developer or AI working in either repository must update that repository's `PROJECT_STATUS.md` before stopping work, ending a task, or handing the work to someone else. Do this even when the work is partial, blocked, or documentation-only.
+- Record the date, completed work, current state and exact stopping point, validation performed (and what was not verified), blockers/decisions needed, and the next concrete action(s) in priority order. Identify changed/uncommitted files or the commit hash when relevant. Never include secrets, bearer codes, customer data, or file contents.
+- If shared backend files changed, update both repositories' handoffs and keep shared code/migrations synchronized. Commit the handoff update with the related change when possible; do not claim a change is finished if it is only planned.
+- The handoff is a living status record: replace obsolete “next steps” when progress changes, and mark work complete only after verification. Keep `PROJECT_STATUS.md` authoritative over legacy TODO lists.
